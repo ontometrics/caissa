@@ -1,0 +1,13 @@
+[package]
+name = "caissa"
+version = "0.1.0"
+edition = "2024"
+description = "A functional chess library: positions are values, moves are pure transitions, a game is a fold."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ontometrics/caissa"
+readme = "readme.md"
+
+[dev-dependencies]
+googletest = "0.12"
+chrono = "0.4"
+synth-clock = { path = "../synth-clock" }
