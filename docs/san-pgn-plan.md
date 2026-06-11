@@ -5,7 +5,10 @@ its PGN and print the final board.
 
 ```rust
 let game = caissa::import(OPERA_GAME_PGN)?;
-assert_eq!(game.mode(), Mode::Played(Ending::Checkmate { winner: Color::White }));
+assert_that!(
+    game.mode(),
+    eq(Mode::Played(Ending::Checkmate { winner: Color::White }))
+);
 println!("{}", game[Terminus]);
 ```
 
