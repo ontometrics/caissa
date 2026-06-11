@@ -281,6 +281,7 @@ dependencies = [
 [[package]]
 name = "synth-clock"
 version = "0.1.0"
+source = "git+https://github.com/ontometrics/synth-clock#737ef333e76b6bb2ccea64d35f50c0010cc1a480"
 dependencies = [
  "chrono",
 ]
