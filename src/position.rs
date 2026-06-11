@@ -1,9 +1,14 @@
+use std::fmt;
+
 use crate::action::{Action, IntoAction};
-use crate::piece::{Color, Piece, Role};
+use crate::piece::{Color, Piece, Role, Wing};
 use crate::reduce::{Mode, Rejected, in_check, legal_actions, mode, reduce};
 use crate::square::Square;
 
-/// A chess position: the board plus whose turn it is.
+/// A chess position: the board, whose turn it is, and the two scraps of
+/// memory the rules of chess force a position to carry — castling rights
+/// and the en-passant square. Everything else about the past is genuinely
+/// forgotten.
 ///
 /// `Copy`, so persistence is free — every transition yields a new value and
 /// the old one stays valid. History, search trees, and variations are all
@@ -12,6 +17,55 @@ use crate::square::Square;
 pub struct Position {
     board: [Option<Piece>; 64],
     turn: Color,
+    rights: Rights,
+    passant: Option<Square>,
+}
+
+/// Which castles remain available. Rights only ever shrink: moving a king
+/// clears both wings, touching a corner square clears that wing, and
+/// nothing restores them.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+struct Rights([bool; 4]);
+
+const CORNERS: [(Square, Color, Wing); 4] = [
+    (Square::at(7, 0), Color::White, Wing::King),
+    (Square::at(0, 0), Color::White, Wing::Queen),
+    (Square::at(7, 7), Color::Black, Wing::King),
+    (Square::at(0, 7), Color::Black, Wing::Queen),
+];
+
+impl Rights {
+    const ALL: Rights = Rights([true; 4]);
+
+    fn index(color: Color, wing: Wing) -> usize {
+        match (color, wing) {
+            (Color::White, Wing::King) => 0,
+            (Color::White, Wing::Queen) => 1,
+            (Color::Black, Wing::King) => 2,
+            (Color::Black, Wing::Queen) => 3,
+        }
+    }
+
+    fn allows(self, color: Color, wing: Wing) -> bool {
+        self.0[Rights::index(color, wing)]
+    }
+
+    fn clear(&mut self, color: Color, wing: Wing) {
+        self.0[Rights::index(color, wing)] = false;
+    }
+
+    fn after(mut self, from: Square, to: Square, piece: Piece) -> Rights {
+        if piece.role == Role::King {
+            self.clear(piece.color, Wing::King);
+            self.clear(piece.color, Wing::Queen);
+        }
+        for (corner, color, wing) in CORNERS {
+            if from == corner || to == corner {
+                self.clear(color, wing);
+            }
+        }
+        self
+    }
 }
 
 impl Default for Position {
@@ -33,15 +87,17 @@ impl Default for Position {
             board[48 + file] = Some(Piece { color: Color::Black, role: Role::Pawn });
             board[56 + file] = Some(Piece { color: Color::Black, role });
         }
-        Position { board, turn: Color::White }
+        Position { board, turn: Color::White, rights: Rights::ALL, passant: None }
     }
 }
 
 impl Position {
     /// An empty board with the given side to move. Useful for tests and
-    /// composed setups via [`Position::with`].
+    /// composed setups via [`Position::with`]. Composed positions keep full
+    /// castling rights — castling legality still requires the king and
+    /// rook to actually stand on their home squares.
     pub fn empty(turn: Color) -> Position {
-        Position { board: [None; 64], turn }
+        Position { board: [None; 64], turn, rights: Rights::ALL, passant: None }
     }
 
     /// A new position with `piece` placed on `square`.
@@ -57,6 +113,18 @@ impl Position {
 
     pub fn turn(self) -> Color {
         self.turn
+    }
+
+    /// The square a just-double-pushed pawn skipped, capturable en passant
+    /// this move only.
+    pub fn passant(self) -> Option<Square> {
+        self.passant
+    }
+
+    /// Whether `color` still has the right to castle on `wing` — the king
+    /// and that rook have never moved.
+    pub fn may_castle(self, color: Color, wing: Wing) -> bool {
+        self.rights.allows(color, wing)
     }
 
     /// Convenience wrapper around [`reduce`] that accepts anything
@@ -91,8 +159,79 @@ impl Position {
 
     pub(crate) fn moved(self, from: Square, to: Square, piece: Piece) -> Position {
         let mut board = self.board;
+        // En passant: a pawn moving diagonally onto the vacant passant
+        // square takes the pawn that just passed it.
+        if piece.role == Role::Pawn
+            && from.file() != to.file()
+            && Some(to) == self.passant
+        {
+            let passed = Square::new(to.file(), from.rank()).expect("same rank as the mover");
+            board[passed.index()] = None;
+        }
         board[from.index()] = None;
         board[to.index()] = Some(piece);
-        Position { board, turn: self.turn.opponent() }
+        let passant = (piece.role == Role::Pawn && from.rank().abs_diff(to.rank()) == 2)
+            .then(|| {
+                Square::new(from.file(), (from.rank() + to.rank()) / 2)
+                    .expect("between two on-board squares")
+            });
+        let rights = self.rights.after(from, to, piece);
+        Position { board, turn: self.turn.opponent(), rights, passant }
+    }
+
+    pub(crate) fn castled(
+        self,
+        color: Color,
+        king: (Square, Square),
+        rook: (Square, Square),
+    ) -> Position {
+        let mut board = self.board;
+        board[king.0.index()] = None;
+        board[rook.0.index()] = None;
+        board[king.1.index()] = Some(Piece { color, role: Role::King });
+        board[rook.1.index()] = Some(Piece { color, role: Role::Rook });
+        let mut rights = self.rights;
+        rights.clear(color, Wing::King);
+        rights.clear(color, Wing::Queen);
+        Position { board, turn: self.turn.opponent(), rights, passant: None }
+    }
+}
+
+/// The board as you'd draw it: rank 8 at the top, files lettered along the
+/// bottom, Unicode pieces, `·` for empty squares.
+impl fmt::Display for Position {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for rank in (0..8).rev() {
+            write!(f, "{} ", rank + 1)?;
+            for file in 0..8 {
+                let glyph = match self.board[(rank * 8 + file) as usize] {
+                    Some(piece) => glyph(piece),
+                    None => '·',
+                };
+                write!(f, "{glyph}")?;
+                if file < 7 {
+                    write!(f, " ")?;
+                }
+            }
+            writeln!(f)?;
+        }
+        write!(f, "  a b c d e f g h")
+    }
+}
+
+fn glyph(piece: Piece) -> char {
+    match (piece.color, piece.role) {
+        (Color::White, Role::King) => '♔',
+        (Color::White, Role::Queen) => '♕',
+        (Color::White, Role::Rook) => '♖',
+        (Color::White, Role::Bishop) => '♗',
+        (Color::White, Role::Knight) => '♘',
+        (Color::White, Role::Pawn) => '♙',
+        (Color::Black, Role::King) => '♚',
+        (Color::Black, Role::Queen) => '♛',
+        (Color::Black, Role::Rook) => '♜',
+        (Color::Black, Role::Bishop) => '♝',
+        (Color::Black, Role::Knight) => '♞',
+        (Color::Black, Role::Pawn) => '♟',
     }
 }

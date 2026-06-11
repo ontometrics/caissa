@@ -60,11 +60,34 @@ for frame in timeline.frames() {
 }
 ```
 
+## Seeing the board
+
+`Position` implements `Display`:
+
+```text
+8 ♜ ♞ ♝ ♛ ♚ ♝ ♞ ♜
+7 ♟ ♟ ♟ ♟ ♟ ♟ ♟ ♟
+6 · · · · · · · ·
+5 · · · · · · · ·
+4 · · · · ♙ · · ·
+3 · · · · · · · ·
+2 ♙ ♙ ♙ ♙ · ♙ ♙ ♙
+1 ♖ ♘ ♗ ♕ ♔ ♗ ♘ ♖
+  a b c d e f g h
+```
+
+Castling needs no notation of its own: it is the king's two-square move
+(`e1g1` / `e1c1`, UCI-style) — a king can never legally travel two squares
+any other way, so intent stays from–to. `O-O` is import-time sugar. En
+passant is likewise just the diagonal pawn move onto the skipped square.
+Both cost `Position` its first memory — castling rights and the en-passant
+square ride along in the value, exactly the fields FEN has always carried.
+
 ## Status
 
-Early. Full piece movement, captures, promotion, check/checkmate/
-stalemate, time controls. Not yet: castling, en passant, draw rules
-(repetition, fifty-move, insufficient material).
+Full move legality: piece movement, captures, promotion, castling,
+en passant, check/checkmate/stalemate, plus time controls. Not yet:
+draw rules (repetition, fifty-move, insufficient material).
 
 ## License
 

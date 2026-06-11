@@ -36,9 +36,14 @@
 //! is done at all, and every action is [`Rejected::GameOver`] in O(1).
 //! There is no position after the end of a game.
 //!
+//! Castling is the king's two-square move (`e1g1` / `e1c1`, UCI-style) —
+//! it needs no notation of its own, and `O-O` is import-time sugar. En
+//! passant is likewise just the diagonal pawn move onto the skipped
+//! square. Both cost [`Position`] its first memory: castling rights and
+//! the en-passant square ride along in the value, exactly the fields FEN
+//! has always carried.
+//!
 //! Not yet implemented:
-//! - castling
-//! - en passant
 //! - draw rules (repetition, fifty-move, insufficient material)
 
 mod action;
@@ -55,7 +60,7 @@ mod timeline;
 pub use action::{Action, IntoAction};
 pub use clock::Clocked;
 pub use game::{Game, Ply, Terminus};
-pub use piece::{Color, Piece, Role};
+pub use piece::{Color, Piece, Role, Wing};
 pub use position::Position;
 pub use reduce::{Ending, Mode, Rejected, in_check, legal_actions, mode, reduce};
 pub use square::Square;

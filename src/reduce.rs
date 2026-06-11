@@ -1,5 +1,5 @@
 use crate::action::Action;
-use crate::piece::{Color, Piece, Role};
+use crate::piece::{Color, Piece, Role, Wing};
 use crate::position::Position;
 use crate::square::Square;
 
@@ -20,8 +20,12 @@ pub enum Rejected {
     /// Pawns promote to queen, rook, bishop, or knight — nothing else.
     InvalidPromotion { into: Role },
     /// The move would leave the mover's own king attacked — covers moving
-    /// into check, moving a pinned piece, and failing to resolve check.
+    /// into check, moving a pinned piece, failing to resolve check, and
+    /// castling out of or through check.
     IntoCheck { king: Square },
+    /// The right to castle on this wing was forfeited — the king or that
+    /// rook has moved. Rights never come back.
+    CastlingForfeited { wing: Wing },
     /// The game already ended; no action can follow [`Terminus`](crate::Terminus).
     GameOver { ending: Ending },
     /// A [`Timeline`](crate::Timeline) record stamped earlier than the
@@ -148,6 +152,15 @@ pub fn reduce(position: Position, action: Action) -> Result<Position, Rejected> 
     if from == to {
         return Err(Rejected::CannotReach { from, to });
     }
+    // Castling needs no notation of its own: it is the king's two-square
+    // move (e1g1 / e1c1, UCI-style). A king can never legally travel two
+    // squares any other way, so intent stays from–to.
+    if piece.role == Role::King
+        && from == king_home(piece.color)
+        && let Some(wing) = castle_wing(piece.color, to)
+    {
+        return castle(position, piece.color, wing);
+    }
     if position.at(to).is_some_and(|target| target.color == piece.color) {
         return Err(Rejected::OwnPieceAt { to });
     }
@@ -192,6 +205,63 @@ fn reaches(position: Position, piece: Piece, from: Square, to: Square) -> bool {
     }
 }
 
+fn king_home(color: Color) -> Square {
+    match color {
+        Color::White => Square::at(4, 0),
+        Color::Black => Square::at(4, 7),
+    }
+}
+
+fn castle_wing(color: Color, to: Square) -> Option<Wing> {
+    let rank = match color {
+        Color::White => 0,
+        Color::Black => 7,
+    };
+    if to == Square::at(6, rank) {
+        Some(Wing::King)
+    } else if to == Square::at(2, rank) {
+        Some(Wing::Queen)
+    } else {
+        None
+    }
+}
+
+fn castle(position: Position, color: Color, wing: Wing) -> Result<Position, Rejected> {
+    let rank = match color {
+        Color::White => 0,
+        Color::Black => 7,
+    };
+    let at = |file| Square::at(file, rank);
+    let king_from = at(4);
+    let (king_to, rook_from, rook_to) = match wing {
+        Wing::King => (at(6), at(7), at(5)),
+        Wing::Queen => (at(2), at(0), at(3)),
+    };
+    if !position.may_castle(color, wing) {
+        return Err(Rejected::CastlingForfeited { wing });
+    }
+    let kingside_between = [at(5), at(6)];
+    let queenside_between = [at(1), at(2), at(3)];
+    let between: &[Square] = match wing {
+        Wing::King => &kingside_between,
+        Wing::Queen => &queenside_between,
+    };
+    let rook_present = position.at(rook_from) == Some(Piece { color, role: Role::Rook });
+    if !rook_present || between.iter().any(|&square| position.at(square).is_some()) {
+        return Err(Rejected::CannotReach { from: king_from, to: king_to });
+    }
+    // The king may not castle out of, through, or into an attacked square.
+    // The square he passes through is exactly where the rook lands, on
+    // both wings.
+    let kings_path = [king_from, rook_to, king_to];
+    for square in kings_path {
+        if attacked(position, square, color.opponent()) {
+            return Err(Rejected::IntoCheck { king: square });
+        }
+    }
+    Ok(position.castled(color, (king_from, king_to), (rook_from, rook_to)))
+}
+
 fn pawn_reaches(position: Position, color: Color, from: Square, to: Square, dx: i8, dy: i8) -> bool {
     let dir: i8 = match color {
         Color::White => 1,
@@ -201,6 +271,7 @@ fn pawn_reaches(position: Position, color: Color, from: Square, to: Square, dx: 
         Color::White => 1,
         Color::Black => 6,
     };
+    let en_passant = Some(to) == position.passant();
     let push = dx == 0 && dy == dir && position.at(to).is_none();
     let double = dx == 0
         && dy == 2 * dir
@@ -209,8 +280,7 @@ fn pawn_reaches(position: Position, color: Color, from: Square, to: Square, dx: 
             .offset(0, dir)
             .is_some_and(|mid| position.at(mid).is_none())
         && position.at(to).is_none();
-    // TODO: en passant — needs the previous double push in the position.
-    let capture = dx.abs() == 1 && dy == dir && position.at(to).is_some();
+    let capture = dx.abs() == 1 && dy == dir && (position.at(to).is_some() || en_passant);
     push || double || capture
 }
 

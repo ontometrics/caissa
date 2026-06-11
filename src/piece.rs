@@ -13,6 +13,13 @@ impl Color {
     }
 }
 
+/// Which side of the board a castle happens on.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Wing {
+    King,
+    Queen,
+}
+
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Role {
     Pawn,
