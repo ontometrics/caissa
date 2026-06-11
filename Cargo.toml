@@ -1,6 +1,6 @@
 [package]
 name = "caissa"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 description = "A functional chess library: positions are values, moves are pure transitions, a game is a fold."
 license = "MIT OR Apache-2.0"

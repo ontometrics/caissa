@@ -62,6 +62,6 @@ pub use clock::Clocked;
 pub use game::{Game, Ply, Terminus};
 pub use piece::{Color, Piece, Role, Wing};
 pub use position::Position;
-pub use reduce::{Ending, Mode, Rejected, in_check, legal_actions, mode, reduce};
+pub use reduce::{Change, Edit, Ending, Mode, Rejected, expand, in_check, legal_actions, mode, reduce};
 pub use square::Square;
 pub use timeline::{Frame, Timeline};

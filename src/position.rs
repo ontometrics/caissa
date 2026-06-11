@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::action::{Action, IntoAction};
 use crate::piece::{Color, Piece, Role, Wing};
-use crate::reduce::{Mode, Rejected, in_check, legal_actions, mode, reduce};
+use crate::reduce::{Change, Edit, Mode, Rejected, in_check, legal_actions, mode, reduce};
 use crate::square::Square;
 
 /// A chess position: the board, whose turn it is, and the two scraps of
@@ -52,19 +52,6 @@ impl Rights {
 
     fn clear(&mut self, color: Color, wing: Wing) {
         self.0[Rights::index(color, wing)] = false;
-    }
-
-    fn after(mut self, from: Square, to: Square, piece: Piece) -> Rights {
-        if piece.role == Role::King {
-            self.clear(piece.color, Wing::King);
-            self.clear(piece.color, Wing::Queen);
-        }
-        for (corner, color, wing) in CORNERS {
-            if from == corner || to == corner {
-                self.clear(color, wing);
-            }
-        }
-        self
     }
 }
 
@@ -157,43 +144,33 @@ impl Position {
         in_check(self, color)
     }
 
-    pub(crate) fn moved(self, from: Square, to: Square, piece: Piece) -> Position {
+    /// The interpreter's back half: a total evaluator that folds a
+    /// [`Change`]'s edits over the board. Rights are bookkept per edit —
+    /// lifting a king forfeits both its wings, lifting (or vacating, or
+    /// capturing on) a corner forfeits that wing — so castling, rook
+    /// moves, and rook captures all pay the same way without anyone
+    /// special-casing them.
+    pub(crate) fn apply(self, change: &Change) -> Position {
         let mut board = self.board;
-        // En passant: a pawn moving diagonally onto the vacant passant
-        // square takes the pawn that just passed it.
-        if piece.role == Role::Pawn
-            && from.file() != to.file()
-            && Some(to) == self.passant
-        {
-            let passed = Square::new(to.file(), from.rank()).expect("same rank as the mover");
-            board[passed.index()] = None;
-        }
-        board[from.index()] = None;
-        board[to.index()] = Some(piece);
-        let passant = (piece.role == Role::Pawn && from.rank().abs_diff(to.rank()) == 2)
-            .then(|| {
-                Square::new(from.file(), (from.rank() + to.rank()) / 2)
-                    .expect("between two on-board squares")
-            });
-        let rights = self.rights.after(from, to, piece);
-        Position { board, turn: self.turn.opponent(), rights, passant }
-    }
-
-    pub(crate) fn castled(
-        self,
-        color: Color,
-        king: (Square, Square),
-        rook: (Square, Square),
-    ) -> Position {
-        let mut board = self.board;
-        board[king.0.index()] = None;
-        board[rook.0.index()] = None;
-        board[king.1.index()] = Some(Piece { color, role: Role::King });
-        board[rook.1.index()] = Some(Piece { color, role: Role::Rook });
         let mut rights = self.rights;
-        rights.clear(color, Wing::King);
-        rights.clear(color, Wing::Queen);
-        Position { board, turn: self.turn.opponent(), rights, passant: None }
+        for edit in &change.edits {
+            match *edit {
+                Edit::Lift(square) => {
+                    if let Some(Piece { color, role: Role::King }) = board[square.index()] {
+                        rights.clear(color, Wing::King);
+                        rights.clear(color, Wing::Queen);
+                    }
+                    for (corner, color, wing) in CORNERS {
+                        if square == corner {
+                            rights.clear(color, wing);
+                        }
+                    }
+                    board[square.index()] = None;
+                }
+                Edit::Place(square, piece) => board[square.index()] = Some(piece),
+            }
+        }
+        Position { board, turn: self.turn.opponent(), rights, passant: change.passant }
     }
 }
 

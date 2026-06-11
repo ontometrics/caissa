@@ -72,7 +72,7 @@ pub fn legal_actions(position: Position) -> impl Iterator<Item = Action> {
         })
         .flat_map(move |from| Square::all().map(move |to| (from, to)))
         .flat_map(move |(from, to)| candidates(position, from, to))
-        .filter(move |&action| reduce(position, action).is_ok())
+        .filter(move |&action| expand(position, action).is_ok())
 }
 
 /// Derive a position's [`Mode`]: the side to move either has a legal
@@ -130,7 +130,30 @@ fn candidates(position: Position, from: Square, to: Square) -> Vec<Action> {
     }
 }
 
-/// The reducer: a pure transition from one position to the next.
+/// A primitive board edit — the instruction set actions compile down to.
+/// Lifting a square empties it; placing puts a piece there. Rights
+/// bookkeeping happens at this level too: lifting a king forfeits both
+/// its wings, lifting a corner forfeits that wing, so a captured rook
+/// costs the right the same way a moved one does.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum Edit {
+    Lift(Square),
+    Place(Square, Piece),
+}
+
+/// What an accepted action does to the board: its expansion into edits,
+/// plus the en-passant square the move leaves behind. Every move expands
+/// from a prototype — a quiet move is two edits, a capture three,
+/// castling four. This is the data an animator or a network protocol
+/// wants: exactly which squares changed.
+#[derive(Clone, PartialEq, Eq, Debug)]
+pub struct Change {
+    pub edits: Vec<Edit>,
+    pub passant: Option<Square>,
+}
+
+/// The reducer: a pure transition from one position to the next —
+/// [`expand`] to validate and compile the action, then apply the edits.
 ///
 /// A game is `actions.try_fold(start, reduce)` — replay, undo, and
 /// variations all fall out of that. This checks the *move*, not the game:
@@ -140,6 +163,14 @@ fn candidates(position: Position, from: Square, to: Square) -> Vec<Action> {
 /// [`Game`](crate::Game), which carries its [`Mode`]. ([`mode`] is defined
 /// in terms of this function, so this must never call [`mode`].)
 pub fn reduce(position: Position, action: Action) -> Result<Position, Rejected> {
+    Ok(position.apply(&expand(position, action)?))
+}
+
+/// The interpreter's front half: validate the action against the position
+/// and expand it from its prototype into primitive [`Edit`]s. Castling is
+/// the biggest expansion — `e1c1` becomes lift the king, lift the rook,
+/// place them on c1 and d1 — but it is not otherwise special.
+pub fn expand(position: Position, action: Action) -> Result<Change, Rejected> {
     let (from, to, promotion) = match action {
         Action::Move { from, to } => (from, to, None),
         Action::Promote { from, to, into } => (from, to, Some(into)),
@@ -183,11 +214,28 @@ pub fn reduce(position: Position, action: Action) -> Result<Position, Rejected> 
         (Some(into), true) => into,
     };
 
-    let next = position.moved(from, to, Piece { color: piece.color, role });
-    if let Some(king) = threatened_king(next, piece.color) {
+    let mut edits = Vec::with_capacity(4);
+    let en_passant =
+        piece.role == Role::Pawn && from.file() != to.file() && Some(to) == position.passant();
+    if position.at(to).is_some() {
+        edits.push(Edit::Lift(to)); // the captured piece leaves first
+    }
+    if en_passant {
+        let passed = Square::new(to.file(), from.rank()).expect("same rank as the mover");
+        edits.push(Edit::Lift(passed));
+    }
+    edits.push(Edit::Lift(from));
+    edits.push(Edit::Place(to, Piece { color: piece.color, role }));
+
+    let passant = (piece.role == Role::Pawn && from.rank().abs_diff(to.rank()) == 2).then(|| {
+        Square::new(from.file(), (from.rank() + to.rank()) / 2).expect("between two on-board squares")
+    });
+
+    let change = Change { edits, passant };
+    if let Some(king) = threatened_king(position.apply(&change), piece.color) {
         return Err(Rejected::IntoCheck { king });
     }
-    Ok(next)
+    Ok(change)
 }
 
 fn reaches(position: Position, piece: Piece, from: Square, to: Square) -> bool {
@@ -226,7 +274,7 @@ fn castle_wing(color: Color, to: Square) -> Option<Wing> {
     }
 }
 
-fn castle(position: Position, color: Color, wing: Wing) -> Result<Position, Rejected> {
+fn castle(position: Position, color: Color, wing: Wing) -> Result<Change, Rejected> {
     let rank = match color {
         Color::White => 0,
         Color::Black => 7,
@@ -259,7 +307,17 @@ fn castle(position: Position, color: Color, wing: Wing) -> Result<Position, Reje
             return Err(Rejected::IntoCheck { king: square });
         }
     }
-    Ok(position.castled(color, (king_from, king_to), (rook_from, rook_to)))
+    // The prototype: two pieces lifted, two placed. Nothing else about
+    // castling survives expansion.
+    Ok(Change {
+        edits: vec![
+            Edit::Lift(king_from),
+            Edit::Lift(rook_from),
+            Edit::Place(king_to, Piece { color, role: Role::King }),
+            Edit::Place(rook_to, Piece { color, role: Role::Rook }),
+        ],
+        passant: None,
+    })
 }
 
 fn pawn_reaches(position: Position, color: Color, from: Square, to: Square, dx: i8, dy: i8) -> bool {
