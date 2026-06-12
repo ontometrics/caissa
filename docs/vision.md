@@ -273,6 +273,35 @@ simulator's true values. Chess skill is, in part, carrying a good
 estimator of W in your head; the coach's job is improving the
 student's estimator, and to do that it needs the real one.
 
+#### The dictionary: snapshot is the default
+
+Where does W live? (Rob): in an OO app you would build a board, place
+pieces, mutate — *snapshot* would be a feature to design. Here it is
+the default: every `Position` is already a snapshot, `history` is a
+list of them, and `Position` is `Hash` — so a dictionary of boards
+with their W/B tallies is one fold away (`dictionary_test.rs`
+demonstrates it on the classics). Three properties make it more than
+a cache:
+
+- **The key family is the resolution dial.** Keyed by `Eq` it is a
+  cache; keyed by `repetition_key` transpositions merge — which is
+  what makes it an opening *book*; keyed by pawn skeleton it becomes a
+  *plan book*, W per structure.
+- **Tallies are a monoid.** W/D/L counts add component-wise, so
+  dictionaries merge: building one is an incremental, parallelizable
+  fold over any corpus, and a student's personal book merges with — or
+  measurably diverges from — the world's. Where the student's book
+  runs out is where their hesitation should spike; the coach can
+  correlate the two.
+- **The three regimes are one idea.** Endgame tablebases are the exact
+  dictionary, complete where the domain is small (≤7 men is solved);
+  opening books are empirical tallies on the manifold games actually
+  visit (legal chess is ~10⁴⁴ positions, but played chess
+  Zipf-concentrates onto a sliver); and a learned value function is
+  the dictionary *compressed* — what you store when you can't store
+  it. Store the visited, learn the rest, and let FEN (v0.7) be the
+  permanent key.
+
 ### 5. The coach — the destination
 
 The founding grievance (Rob): first game of computer chess in the

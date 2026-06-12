@@ -13,7 +13,7 @@ use crate::square::Square;
 /// `Copy`, so persistence is free — every transition yields a new value and
 /// the old one stays valid. History, search trees, and variations are all
 /// "keep the old value".
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Position {
     board: [Option<Piece>; 64],
     turn: Color,
@@ -24,7 +24,7 @@ pub struct Position {
 /// Which castles remain available. Rights only ever shrink: moving a king
 /// clears both wings, touching a corner square clears that wing, and
 /// nothing restores them.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 struct Rights([bool; 4]);
 
 const CORNERS: [(Square, Color, Wing); 4] = [

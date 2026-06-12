@@ -4,7 +4,7 @@ use std::str::FromStr;
 use crate::reduce::Rejected;
 
 /// A square on the board: file a–h, rank 1–8.
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub struct Square {
     file: u8, // 0 = a-file
     rank: u8, // 0 = rank 1
