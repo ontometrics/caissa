@@ -62,9 +62,8 @@
 //! claimed ([`Game::claim_draw`]), like flags.
 //!
 //! Not yet implemented:
-//! - FEN import/export
-//! - full PGN export with tag pairs
 //! - variations
+//! - the engine fast path (ungated movegen for search workloads)
 
 mod action;
 pub mod classics;

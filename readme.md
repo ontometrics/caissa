@@ -143,8 +143,8 @@ learning more powerful. Per-feature decision records sit beside it in
 - [x] Score emission, letters and figurines; `import(game.score())` round-trips — `v0.4.0`
 - [x] `classics` module — famous games and openings as ready-made fixtures, plus `Piece::white`/`Piece::black` — `v0.5.0`
 - [x] Draw rules — insufficient material on the board; repetition and move-counts derived from the history; threefold/fifty claimed (`claim_draw`), fivefold/seventy-five automatic — `v0.6.0`
-- [ ] Full PGN export with tag pairs
-- [ ] FEN import/export (start positions for `Game::from_position`)
+- [x] FEN import/export — counters derived from the log, never stored — `v0.7.0`
+- [x] Full PGN export with tag pairs — the Result negotiated between board and tag, export∘import round-trips — `v0.7.0`
 - [ ] Variations — parsed and represented, not just rejected
 - [ ] Engine fast path: ungated movegen for search workloads
 

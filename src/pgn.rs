@@ -93,6 +93,76 @@ pub fn import(text: &str) -> Result<Game, Rejected> {
     Ok(game)
 }
 
+/// Export a game as PGN: tag pairs (seven-tag-roster order first, the
+/// rest alphabetically), a blank line, then movetext wrapped at 80
+/// columns. The Result comes from the board where it knows
+/// (mate, stalemate, draws) and from the declared tag where it cannot
+/// (resignations, agreements); a declared result that contradicts the
+/// board is rejected, mirroring [`import`].
+pub fn export(game: &Game, tags: &BTreeMap<String, String>) -> Result<String, Rejected> {
+    let board_says = match game.mode() {
+        Mode::Played(Ending::Checkmate { winner: Color::White }) => Some("1-0"),
+        Mode::Played(Ending::Checkmate { winner: Color::Black }) => Some("0-1"),
+        Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => Some("1/2-1/2"),
+        _ => None,
+    };
+    let declared = tags.get("Result").map(String::as_str);
+    let result = match (board_says, declared) {
+        (Some(board), Some(tag)) if board != tag => {
+            return Err(Rejected::Unparseable(format!(
+                "result {tag} contradicts the board, which says {board}"
+            )));
+        }
+        (Some(board), _) => board,
+        (None, Some(tag)) => tag,
+        (None, None) => "*",
+    };
+
+    const ROSTER: [&str; 7] = ["Event", "Site", "Date", "Round", "White", "Black", "Result"];
+    let mut out = String::new();
+    for key in ROSTER {
+        if key == "Result" {
+            out.push_str(&format!("[Result \"{result}\"]\n"));
+        } else if let Some(value) = tags.get(key) {
+            out.push_str(&format!("[{key} \"{value}\"]\n"));
+        }
+    }
+    for (key, value) in tags {
+        if !ROSTER.contains(&key.as_str()) {
+            out.push_str(&format!("[{key} \"{value}\"]\n"));
+        }
+    }
+    out.push('\n');
+
+    // The score already ends with the board's marker; the movetext keeps
+    // the moves and takes the negotiated result instead.
+    let score = game.score();
+    let moves = score.rsplit_once(' ').map_or("", |(moves, _)| moves);
+    for line in wrap(&format!("{moves} {result}"), 80) {
+        out.push_str(&line);
+        out.push('\n');
+    }
+    Ok(out)
+}
+
+fn wrap(text: &str, width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut line = String::new();
+    for word in text.split_whitespace() {
+        if !line.is_empty() && line.len() + 1 + word.len() > width {
+            lines.push(std::mem::take(&mut line));
+        }
+        if !line.is_empty() {
+            line.push(' ');
+        }
+        line.push_str(word);
+    }
+    if !line.is_empty() {
+        lines.push(line);
+    }
+    lines
+}
+
 fn tag_pair(line: &str) -> Option<(String, String)> {
     let inner = line.strip_prefix('[')?.strip_suffix(']')?;
     let (key, rest) = inner.split_once(' ')?;

@@ -174,6 +174,13 @@ impl Game {
         log.into_iter().try_fold(start, reduce)
     }
 
+    /// The current position as FEN with the true counters: the halfmove
+    /// clock derived from the log ([`Game::quiet_plies`]) and the
+    /// fullmove number from the ply count — both history, neither stored.
+    pub fn fen(&self) -> String {
+        self.position().fen_with(self.quiet_plies(), self.plies() / 2 + 1)
+    }
+
     /// The game as a publication would print it:
     /// `1. e4 e5 2. Nf3 d6 … 17. Rd8# 1-0`. Also what `Display` shows.
     pub fn score(&self) -> String {

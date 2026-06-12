@@ -177,6 +177,124 @@ impl Position {
         })
     }
 
+    /// This position as FEN. A bare position cannot know the two
+    /// counters (they are history, not state), so they default to
+    /// `0 1` — [`Game::fen`](crate::Game::fen) supplies the real ones.
+    pub fn fen(self) -> String {
+        self.fen_with(0, 1)
+    }
+
+    pub(crate) fn fen_with(self, halfmove: usize, fullmove: usize) -> String {
+        let mut out = String::new();
+        for rank in (0..8).rev() {
+            let mut run = 0;
+            for file in 0..8 {
+                match self.board[(rank * 8 + file) as usize] {
+                    Some(piece) => {
+                        if run > 0 {
+                            out.push_str(&run.to_string());
+                            run = 0;
+                        }
+                        out.push(fen_letter(piece));
+                    }
+                    None => run += 1,
+                }
+            }
+            if run > 0 {
+                out.push_str(&run.to_string());
+            }
+            if rank > 0 {
+                out.push('/');
+            }
+        }
+        out.push(' ');
+        out.push(match self.turn {
+            Color::White => 'w',
+            Color::Black => 'b',
+        });
+        out.push(' ');
+        let castling: String = [
+            (Color::White, Wing::King, 'K'),
+            (Color::White, Wing::Queen, 'Q'),
+            (Color::Black, Wing::King, 'k'),
+            (Color::Black, Wing::Queen, 'q'),
+        ]
+        .into_iter()
+        .filter(|&(color, wing, _)| self.rights.allows(color, wing))
+        .map(|(_, _, letter)| letter)
+        .collect();
+        out.push_str(if castling.is_empty() { "-" } else { &castling });
+        out.push(' ');
+        match self.passant {
+            Some(square) => out.push_str(&square.to_string()),
+            None => out.push('-'),
+        }
+        out.push_str(&format!(" {halfmove} {fullmove}"));
+        out
+    }
+
+    /// A position read from FEN. The two counters are accepted but not
+    /// kept — they are history, and a position is state; a game built
+    /// from an imported position counts quiet plies from the import.
+    pub fn from_fen(fen: &str) -> Result<Position, Rejected> {
+        let reject = || Rejected::Unparseable(fen.to_string());
+        let fields: Vec<&str> = fen.split_whitespace().collect();
+        if fields.len() < 4 {
+            return Err(reject());
+        }
+
+        let mut board = [None; 64];
+        let ranks: Vec<&str> = fields[0].split('/').collect();
+        if ranks.len() != 8 {
+            return Err(reject());
+        }
+        for (row, text) in ranks.iter().enumerate() {
+            let rank = 7 - row as u8;
+            let mut file = 0u8;
+            for c in text.chars() {
+                if let Some(run) = c.to_digit(10) {
+                    file += run as u8;
+                } else {
+                    if file >= 8 {
+                        return Err(reject());
+                    }
+                    board[(rank * 8 + file) as usize] = Some(fen_piece(c).ok_or_else(reject)?);
+                    file += 1;
+                }
+            }
+            if file != 8 {
+                return Err(reject());
+            }
+        }
+
+        let turn = match fields[1] {
+            "w" => Color::White,
+            "b" => Color::Black,
+            _ => return Err(reject()),
+        };
+
+        let mut remaining = [false; 4];
+        if fields[2] != "-" {
+            for c in fields[2].chars() {
+                let (color, wing) = match c {
+                    'K' => (Color::White, Wing::King),
+                    'Q' => (Color::White, Wing::Queen),
+                    'k' => (Color::Black, Wing::King),
+                    'q' => (Color::Black, Wing::Queen),
+                    _ => return Err(reject()),
+                };
+                remaining[Rights::slot(color, wing)] = true;
+            }
+        }
+
+        let passant = match fields[3] {
+            "-" => None,
+            square => Some(square.parse().map_err(|_| reject())?),
+        };
+
+        Ok(Position { board, turn, rights: Rights { remaining }, passant })
+    }
+
     /// The interpreter's back half: a total evaluator that folds a
     /// [`Change`]'s edits over the board. Rights are bookkept per edit —
     /// lifting a king forfeits both its wings, lifting (or vacating, or
@@ -226,6 +344,35 @@ impl fmt::Display for Position {
         }
         write!(f, "  a b c d e f g h")
     }
+}
+
+pub(crate) fn fen_letter(piece: Piece) -> char {
+    let letter = match piece.role {
+        Role::Pawn => 'p',
+        Role::Knight => 'n',
+        Role::Bishop => 'b',
+        Role::Rook => 'r',
+        Role::Queen => 'q',
+        Role::King => 'k',
+    };
+    match piece.color {
+        Color::White => letter.to_ascii_uppercase(),
+        Color::Black => letter,
+    }
+}
+
+fn fen_piece(letter: char) -> Option<Piece> {
+    let role = match letter.to_ascii_lowercase() {
+        'p' => Role::Pawn,
+        'n' => Role::Knight,
+        'b' => Role::Bishop,
+        'r' => Role::Rook,
+        'q' => Role::Queen,
+        'k' => Role::King,
+        _ => return None,
+    };
+    let color = if letter.is_ascii_uppercase() { Color::White } else { Color::Black };
+    Some(Piece { color, role })
 }
 
 pub(crate) fn glyph(piece: Piece) -> char {
