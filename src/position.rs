@@ -22,10 +22,12 @@ pub struct Position {
 }
 
 /// Which castles remain available. Rights only ever shrink: moving a king
-/// clears both wings, touching a corner square clears that wing, and
-/// nothing restores them.
+/// forfeits both wings, touching a corner square forfeits that wing — and
+/// the law lives in the API itself: `without` exists, `with` does not.
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-struct Rights([bool; 4]);
+struct Rights {
+    remaining: [bool; 4],
+}
 
 const CORNERS: [(Square, Color, Wing); 4] = [
     (Square::at(7, 0), Color::White, Wing::King),
@@ -35,9 +37,9 @@ const CORNERS: [(Square, Color, Wing); 4] = [
 ];
 
 impl Rights {
-    const ALL: Rights = Rights([true; 4]);
+    const ALL: Rights = Rights { remaining: [true; 4] };
 
-    fn index(color: Color, wing: Wing) -> usize {
+    fn slot(color: Color, wing: Wing) -> usize {
         match (color, wing) {
             (Color::White, Wing::King) => 0,
             (Color::White, Wing::Queen) => 1,
@@ -47,11 +49,13 @@ impl Rights {
     }
 
     fn allows(self, color: Color, wing: Wing) -> bool {
-        self.0[Rights::index(color, wing)]
+        self.remaining[Rights::slot(color, wing)]
     }
 
-    fn clear(&mut self, color: Color, wing: Wing) {
-        self.0[Rights::index(color, wing)] = false;
+    fn without(self, color: Color, wing: Wing) -> Rights {
+        let mut remaining = self.remaining;
+        remaining[Rights::slot(color, wing)] = false;
+        Rights { remaining }
     }
 }
 
@@ -186,12 +190,11 @@ impl Position {
             match *edit {
                 Edit::Lift(square) => {
                     if let Some(Piece { color, role: Role::King }) = board[square.index()] {
-                        rights.clear(color, Wing::King);
-                        rights.clear(color, Wing::Queen);
+                        rights = rights.without(color, Wing::King).without(color, Wing::Queen);
                     }
                     for (corner, color, wing) in CORNERS {
                         if square == corner {
-                            rights.clear(color, wing);
+                            rights = rights.without(color, wing);
                         }
                     }
                     board[square.index()] = None;
