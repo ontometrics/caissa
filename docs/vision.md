@@ -227,11 +227,58 @@ phrases (contiguous, BPE-discoverable) capture *tactics and book*;
 recurrences modulo coarser keys capture *plans*; a powerful encoding
 carries both.
 
+### 4. The coach — the destination
+
+The founding grievance (Rob): first game of computer chess in the
+1980s, still remembers the first win against it — and in forty years,
+no chess program has ever *coached*. They analyze ("eval -3.2, best
+was Nf3"); they referee; they crush. None of them know the player.
+
+The diagnosis: coaching requires two things engines structurally lack.
+A **model of the student**, and a **vocabulary between centipawns and
+grandmaster prose**. The first three horizons turn out to be the
+missing parts:
+
+- *The log is the student's record.* Every game a replayable value;
+  the coach was there for all of them and can return to any ply.
+- *Think-time is the hesitation signal.* Where the clock burned is
+  where the patterns ran out — a map of missing knowledge no app has
+  ever read. A coach reads hesitation the way a human coach reads a
+  face.
+- *The key family is the diagnosis vocabulary.* "You lose in this pawn
+  skeleton" — plan-level diagnosis in the quotient spaces, where
+  engines can only mumble move-level centipawns.
+- *The phrase book is the lesson unit.* Humans learn chess in chunks;
+  that is why the chunks have names. Curriculum is phrases, ordered.
+- *The player is the sparring partner* — tuned to play **into** the
+  student's diagnosed weakness, which a maximally-strong engine never
+  does. Losing instructively is a feature no engine has.
+
+The cybernetic frame makes it precise (Wiener, via the `analog` crate
+this vocabulary comes from): a coach is a feedback controller, and
+effective control requires an analog of the controlled system inside
+the controller — the coach must *contain a model of the student*: a
+distribution over phrases they know, structures they understand,
+hesitations they exhibit, updated after every game. And a lesson is a
+long-running transaction with a re-verified post-condition: "the
+king-safety leak is fixed" commits only if it is still true N games
+later. Spaced repetition is ACID with continuously re-checked
+invariants.
+
+The measurable skeleton: diagnose (cluster the student's losses by
+skeleton trajectory; spike-detect hesitation in their timelines),
+prescribe (lessons from the phrase book; classics chosen because they
+exhibit the missing plan — the Opera Game is already in the crate),
+spar (an opponent tuned to steer into the weak structures), and
+re-verify (the post-condition watched across future games). Every step
+is a fold over logs.
+
 ## Sequencing
 
 Near-term (the checklist): v0.7.0 interchange (FEN + tagged PGN
 export), then variations — where prefix sharing becomes API — then the
 book staging, while the decisions are fresh. The horizons come after,
-as layers and siblings: player, then learner, then the encoding lab.
-The book gets chapters out of every stage; the tags mark where each
-one stands.
+as layers and siblings: player, then learner, then the encoding lab —
+each one a component the coach needs, so the destination orders the
+road. The book gets chapters out of every stage; the tags mark where
+each one stands.
