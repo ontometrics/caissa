@@ -85,6 +85,17 @@ its law; a derived value *is* the law). The smell, stated crisply:
 when a rule has to live in a wiki to survive, its address in the code
 is "everywhere."
 
+The three mechanisms aren't independent tricks — they are what value
+semantics *buys*. A choke point is only trustworthy when there is no
+other way to mutate: values can't be aliased and scribbled on behind
+the law's back. Law-as-absence only works when the type's API is the
+complete set of state transitions. Derivation is only safe when the
+source of truth can't drift. Mutable-object designs leak on all three
+at once — every setter is a new address — which is why their laws end
+up residual: the true statement degrades into tribal knowledge and
+wiki pages. This is the actual argument for the functional
+architecture: not elegance, *jurisdiction*.
+
 **Time as data.** The core never reads a clock. `Timeline` annotates
 the log with stamps (generic — integers in tests, `Instant` in
 production); `started`/`ended` form a Snodgrass valid-time interval
