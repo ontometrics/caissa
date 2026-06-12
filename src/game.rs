@@ -2,9 +2,9 @@ use std::fmt;
 use std::ops::{Index, Sub};
 
 use crate::action::{Action, IntoAction};
-use crate::piece::Color;
+use crate::piece::{Color, Role};
 use crate::position::Position;
-use crate::reduce::{Ending, Mode, Rejected, mode, reduce};
+use crate::reduce::{DrawReason, Ending, Mode, Rejected, mode, reduce};
 use crate::san::{to_figurine, to_san};
 
 /// A game is its starting position plus the log of accepted actions —
@@ -54,7 +54,18 @@ impl Game {
         let mut history = self.history.clone();
         log.push(action);
         history.push(next);
-        Ok(Game { start: self.start, log, history, mode: mode(next) })
+        let mut game = Game { start: self.start, log, history, mode: mode(next) };
+        // The automatic draws live above the position: fivefold and
+        // seventy-five-move are facts about the history, arriving by
+        // themselves the way mate does.
+        if game.mode == Mode::Playing {
+            if game.repetitions() >= 5 {
+                game.mode = Mode::Played(Ending::Draw(DrawReason::Fivefold));
+            } else if game.quiet_plies() >= 150 {
+                game.mode = Mode::Played(Ending::Draw(DrawReason::SeventyFiveMoves));
+            }
+        }
+        Ok(game)
     }
 
     pub fn position(&self) -> Position {
@@ -69,6 +80,54 @@ impl Game {
     /// a field read, not a derivation.
     pub fn mode(&self) -> Mode {
         self.mode
+    }
+
+    /// Plies since the last capture or pawn move — the fifty-move rule's
+    /// clock. Derived from the log, never stored: FEN's halfmove counter,
+    /// computed on demand.
+    pub fn quiet_plies(&self) -> usize {
+        self.log
+            .iter()
+            .enumerate()
+            .rev()
+            .take_while(|&(ply, &action)| {
+                let before = self.history[ply];
+                let (from, to) = match action {
+                    Action::Move { from, to } | Action::Promote { from, to, .. } => (from, to),
+                };
+                let pawn = before.at(from).is_some_and(|piece| piece.role == Role::Pawn);
+                !pawn && before.at(to).is_none()
+            })
+            .count()
+    }
+
+    /// How many times the current position has occurred, counted by FIDE's
+    /// "same position" ([`Position::repetition_key`]) — at least 1, since
+    /// the current position counts itself.
+    pub fn repetitions(&self) -> usize {
+        let key = self.position().repetition_key();
+        self.history
+            .iter()
+            .filter(|past| past.repetition_key() == key)
+            .count()
+    }
+
+    /// Claim the draw the position has armed — threefold repetition or the
+    /// fifty-move rule. Like an unnoticed flag, an unclaimed draw keeps
+    /// the game playing; the automatic draws (fivefold, seventy-five,
+    /// insufficient material) never need asking.
+    pub fn claim_draw(&self) -> Result<Game, Rejected> {
+        if let Mode::Played(ending) = self.mode {
+            return Err(Rejected::GameOver { ending });
+        }
+        let reason = if self.repetitions() >= 3 {
+            DrawReason::Threefold
+        } else if self.quiet_plies() >= 100 {
+            DrawReason::FiftyMoves
+        } else {
+            return Err(Rejected::NoDrawToClaim);
+        };
+        Ok(Game { mode: Mode::Played(Ending::Draw(reason)), ..self.clone() })
     }
 
     /// Number of plies played. A *ply* is a half-move — one action by one
@@ -126,7 +185,7 @@ impl Game {
         out.push_str(match self.mode {
             Mode::Played(Ending::Checkmate { winner: Color::White }) => "1-0",
             Mode::Played(Ending::Checkmate { winner: Color::Black }) => "0-1",
-            Mode::Played(Ending::Stalemate) => "1/2-1/2",
+            Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => "1/2-1/2",
             _ => "*",
         });
         out

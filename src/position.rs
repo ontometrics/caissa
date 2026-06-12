@@ -144,6 +144,29 @@ impl Position {
         in_check(self, color)
     }
 
+    /// FIDE's "same position" for repetition (rule 9.2): board, turn, and
+    /// castling rights — but the en-passant square only when an enemy pawn
+    /// actually stands ready to take it. This is a *domain equivalence*,
+    /// coarser than `Eq`: two positions can differ structurally (one
+    /// records a skipped square no pawn can use) yet repeat by the rules.
+    /// Compare keys, not positions, when counting repetitions.
+    pub fn repetition_key(self) -> Position {
+        let live = self.passant.filter(|&skipped| self.ep_capturable(skipped));
+        Position { passant: live, ..self }
+    }
+
+    fn ep_capturable(self, skipped: Square) -> bool {
+        let pusher: i8 = match self.turn.opponent() {
+            Color::White => 1,
+            Color::Black => -1,
+        };
+        [-1i8, 1].into_iter().any(|dx| {
+            skipped.offset(dx, pusher).is_some_and(|square| {
+                self.at(square) == Some(Piece { color: self.turn, role: Role::Pawn })
+            })
+        })
+    }
+
     /// The interpreter's back half: a total evaluator that folds a
     /// [`Change`]'s edits over the board. Rights are bookkept per edit —
     /// lifting a king forfeits both its wings, lifting (or vacating, or

@@ -5,7 +5,7 @@ use caissa::notation::*;
 use caissa::{Color, Ending, Mode, Origin, Piece, Rejected, Role, San, import, pgn};
 use googletest::prelude::*;
 
-/// Real games end to end: the fold arrives at mate on its own.
+/// Real games end to end: the fold arrives at mate on its own. [This is the happy path.]
 mod classics {
     use super::*;
 
@@ -15,12 +15,17 @@ mod classics {
 
         assert_that!(
             game.mode(),
-            eq(Mode::Played(Ending::Checkmate { winner: Color::White }))
+            eq(Mode::Played(Ending::Checkmate {
+                winner: Color::White
+            }))
         );
         assert_that!(game.plies(), eq(33));
         assert_that!(
             game[Terminus].at(d8),
-            some(eq(Piece { color: Color::White, role: Role::Rook }))
+            some(eq(Piece {
+                color: Color::White,
+                role: Role::Rook
+            }))
         );
     }
 
@@ -30,12 +35,17 @@ mod classics {
 
         assert_that!(
             game.mode(),
-            eq(Mode::Played(Ending::Checkmate { winner: Color::White }))
+            eq(Mode::Played(Ending::Checkmate {
+                winner: Color::White
+            }))
         );
         assert_that!(game.plies(), eq(45));
         assert_that!(
             game[Terminus].at(e7),
-            some(eq(Piece { color: Color::White, role: Role::Bishop }))
+            some(eq(Piece {
+                color: Color::White,
+                role: Role::Bishop
+            }))
         );
     }
 
@@ -71,7 +81,10 @@ mod tolerance {
 
         assert_that!(
             game[Terminus].at(g1),
-            some(eq(Piece { color: Color::White, role: Role::King }))
+            some(eq(Piece {
+                color: Color::White,
+                role: Role::King
+            }))
         );
     }
 
@@ -84,7 +97,9 @@ mod tolerance {
         assert_that!(game.plies(), eq(4));
         assert_that!(
             game.mode(),
-            eq(Mode::Played(Ending::Checkmate { winner: Color::Black }))
+            eq(Mode::Played(Ending::Checkmate {
+                winner: Color::Black
+            }))
         );
     }
 }
@@ -139,7 +154,11 @@ mod rejections {
         assert_that!(
             result,
             err(eq(&Rejected::NoMatch {
-                san: San::Move { role: Role::Pawn, origin: Origin::Anywhere, to: e4 }
+                san: San::Move {
+                    role: Role::Pawn,
+                    origin: Origin::Anywhere,
+                    to: e4
+                }
             }))
         );
     }

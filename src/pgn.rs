@@ -79,7 +79,7 @@ pub fn import(text: &str) -> Result<Game, Rejected> {
         let board_says = match game.mode() {
             Mode::Played(Ending::Checkmate { winner: Color::White }) => Some("1-0"),
             Mode::Played(Ending::Checkmate { winner: Color::Black }) => Some("0-1"),
-            Mode::Played(Ending::Stalemate) => Some("1/2-1/2"),
+            Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => Some("1/2-1/2"),
             _ => None,
         };
         if let Some(expected) = board_says

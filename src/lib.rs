@@ -55,8 +55,16 @@
 //! the en-passant square ride along in the value, exactly the fields FEN
 //! has always carried.
 //!
+//! Draws complete the rules: insufficient material is a board fact
+//! (position-level [`mode`]); repetition and the move-count rules are
+//! facts about the *history*, so [`Game`] derives them — fivefold and
+//! seventy-five-move arrive by themselves, threefold and fifty-move are
+//! claimed ([`Game::claim_draw`]), like flags.
+//!
 //! Not yet implemented:
-//! - draw rules (repetition, fifty-move, insufficient material)
+//! - FEN import/export
+//! - full PGN export with tag pairs
+//! - variations
 
 mod action;
 pub mod classics;
@@ -78,7 +86,10 @@ pub use game::{Game, Ply, Terminus};
 pub use piece::{Color, Piece, Role, Wing};
 pub use pgn::import;
 pub use position::Position;
-pub use reduce::{Change, Edit, Ending, Mode, Rejected, expand, in_check, legal_actions, mode, reduce};
+pub use reduce::{
+    Change, DrawReason, Edit, Ending, Mode, Rejected, expand, in_check, legal_actions, mode,
+    reduce,
+};
 pub use san::{Origin, San, to_figurine, to_san};
 pub use square::Square;
 pub use timeline::{Frame, Timeline};

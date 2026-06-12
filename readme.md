@@ -115,6 +115,9 @@ publication figurine form:
 Emission is resolution's inverse, and the tests hold it to that:
 `import(game.score())` reproduces the game.
 
+Chess is now rules-complete: every way a game can legally move or end is
+in the reducer and the layers above it.
+
 ## Status
 
 - [x] Pure reducer — from–to actions, one error type, errors as data — `v0.1.0`
@@ -132,7 +135,7 @@ Emission is resolution's inverse, and the tests hold it to that:
 - [x] PGN import — the Opera Game and the Immortal Game fold to mate — `v0.3.0`
 - [x] Score emission, letters and figurines; `import(game.score())` round-trips — `v0.4.0`
 - [x] `classics` module — famous games and openings as ready-made fixtures, plus `Piece::white`/`Piece::black` — `v0.5.0`
-- [ ] Draw rules: threefold repetition, fifty-move, insufficient material
+- [x] Draw rules — insufficient material on the board; repetition and move-counts derived from the history; threefold/fifty claimed (`claim_draw`), fivefold/seventy-five automatic — `v0.6.0`
 - [ ] Full PGN export with tag pairs
 - [ ] FEN import/export (start positions for `Game::from_position`)
 - [ ] Variations — parsed and represented, not just rejected

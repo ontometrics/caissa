@@ -37,6 +37,9 @@ pub enum Rejected {
     OutOfTime,
     /// A flag claim while the mover still has time on the clock.
     StillOnTime,
+    /// A draw claim with nothing to claim — no threefold repetition, and
+    /// fewer than fifty quiet moves.
+    NoDrawToClaim,
     /// A SAN that no legal action matches.
     NoMatch { san: San },
     /// A SAN that several legal actions satisfy — needs disambiguation.
@@ -55,15 +58,31 @@ pub enum Mode {
     Played(Ending),
 }
 
-/// How a played game ended. `Checkmate` and `Stalemate` are derived from
-/// the board ([`mode`]): the side to move had no legal action, and check
-/// decides which. `Flagged` is produced only by the clock layer
-/// ([`Clocked`](crate::Clocked)) — the board cannot see the clock.
+/// How a played game ended. `Checkmate`, `Stalemate`, and the
+/// insufficient-material draw are derived from the board ([`mode`]).
+/// Repetition and move-count draws are facts about the *history*, so they
+/// are derived by [`Game`](crate::Game). `Flagged` is produced only by the
+/// clock layer ([`Clocked`](crate::Clocked)) — the board cannot see the
+/// clock.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Ending {
     Checkmate { winner: Color },
     Stalemate,
+    Draw(DrawReason),
     Flagged { winner: Color },
+}
+
+/// Which rule drew the game. `Threefold` and `FiftyMoves` are *claimed*
+/// ([`Game::claim_draw`](crate::Game::claim_draw)); `Fivefold`,
+/// `SeventyFiveMoves`, and `InsufficientMaterial` arrive by themselves —
+/// the position arms the draw, and FIDE says who fires it.
+#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+pub enum DrawReason {
+    Threefold,
+    FiftyMoves,
+    Fivefold,
+    SeventyFiveMoves,
+    InsufficientMaterial,
 }
 
 /// All actions the side to move can legally take. Pawn moves onto the last
@@ -80,11 +99,15 @@ pub fn legal_actions(position: Position) -> impl Iterator<Item = Action> {
         .filter(move |&action| expand(position, action).is_ok())
 }
 
-/// Derive a position's [`Mode`]: the side to move either has a legal
-/// action, or the game has been played. Costs a pass over the legal
-/// actions — carry the result (as [`Game`](crate::Game) does) rather than
-/// recomputing it per action.
+/// Derive a position's [`Mode`]: a dead position (insufficient material)
+/// has been played no matter whose turn it is; otherwise the side to move
+/// either has a legal action, or the game has been played. Costs a pass
+/// over the legal actions — carry the result (as [`Game`](crate::Game)
+/// does) rather than recomputing it per action.
 pub fn mode(position: Position) -> Mode {
+    if dead_position(position) {
+        return Mode::Played(Ending::Draw(DrawReason::InsufficientMaterial));
+    }
     if legal_actions(position).next().is_some() {
         return Mode::Playing;
     }
@@ -93,6 +116,36 @@ pub fn mode(position: Position) -> Mode {
     } else {
         Mode::Played(Ending::Stalemate)
     }
+}
+
+/// The standard material table for FIDE's dead position: K vs K, a lone
+/// bishop or knight against a bare king, or same-shaded lone bishops.
+/// (True dead-position analysis is search, not a table — out of scope.)
+fn dead_position(position: Position) -> bool {
+    let mut white = Vec::new();
+    let mut black = Vec::new();
+    for square in Square::all() {
+        if let Some(piece) = position.at(square)
+            && piece.role != Role::King
+        {
+            match piece.color {
+                Color::White => white.push((piece.role, square)),
+                Color::Black => black.push((piece.role, square)),
+            }
+        }
+    }
+    match (white.as_slice(), black.as_slice()) {
+        ([], []) => true,
+        ([(Role::Bishop, _)], []) | ([], [(Role::Bishop, _)]) => true,
+        ([(Role::Knight, _)], []) | ([], [(Role::Knight, _)]) => true,
+        ([(Role::Bishop, ours)], [(Role::Bishop, theirs)]) => shade(*ours) == shade(*theirs),
+        _ => false,
+    }
+}
+
+/// Which color square this is — same-shaded lone bishops can never meet.
+fn shade(square: Square) -> bool {
+    (square.file() + square.rank()).is_multiple_of(2)
 }
 
 /// Whether `color`'s king is attacked. A board with no king (a composed
