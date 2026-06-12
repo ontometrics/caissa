@@ -45,7 +45,7 @@ impl Game {
         if let Mode::Played(ending) = self.mode {
             return Err(Rejected::GameOver { ending });
         }
-        let action = action.into_action()?;
+        let action = action.into_action(self.position())?;
         let next = reduce(self.position(), action)?;
         let mut log = self.log.clone();
         let mut history = self.history.clone();

@@ -1,7 +1,9 @@
 use std::str::FromStr;
 
 use crate::piece::Role;
+use crate::position::Position;
 use crate::reduce::Rejected;
+use crate::san::San;
 use crate::square::Square;
 
 /// A player's intent, and nothing more. The position supplies the rest:
@@ -43,25 +45,36 @@ impl FromStr for Action {
 }
 
 /// Anything that can stand in for an action at a call site, so the public
-/// API never requires naming the enum: `position.play("h2h4")`.
+/// API never requires naming the enum: `position.play("h2h4")`,
+/// `game.apply("Nf3")`. The position is threaded through because SAN is a
+/// description that only a position can resolve; UCI-shaped inputs ignore
+/// it.
 pub trait IntoAction {
-    fn into_action(self) -> Result<Action, Rejected>;
+    fn into_action(self, position: Position) -> Result<Action, Rejected>;
 }
 
 impl IntoAction for Action {
-    fn into_action(self) -> Result<Action, Rejected> {
+    fn into_action(self, _: Position) -> Result<Action, Rejected> {
         Ok(self)
     }
 }
 
 impl IntoAction for (Square, Square) {
-    fn into_action(self) -> Result<Action, Rejected> {
+    fn into_action(self, _: Position) -> Result<Action, Rejected> {
         Ok(self.into())
     }
 }
 
+impl IntoAction for San {
+    fn into_action(self, position: Position) -> Result<Action, Rejected> {
+        self.resolve(position)
+    }
+}
+
+/// UCI first — its grammar is regular and disjoint from SAN — then SAN.
 impl IntoAction for &str {
-    fn into_action(self) -> Result<Action, Rejected> {
-        self.parse()
+    fn into_action(self, position: Position) -> Result<Action, Rejected> {
+        self.parse::<Action>()
+            .or_else(|_| self.parse::<San>()?.resolve(position))
     }
 }

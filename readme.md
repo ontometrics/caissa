@@ -83,11 +83,32 @@ passant is likewise just the diagonal pawn move onto the skipped square.
 Both cost `Position` its first memory — castling rights and the en-passant
 square ride along in the value, exactly the fields FEN has always carried.
 
+## Classic games
+
+SAN is resolved, not interpreted: `"Nf3"` parses into a description, and
+resolution filters the legal actions down to the unique match — so SAN
+inherits every rule the reducer enforces, disambiguation included. PGN
+import is then just the fold the crate is built on:
+
+```rust
+let game = caissa::import(OPERA_GAME_PGN)?;
+assert_that!(
+    game.mode(),
+    eq(Mode::Played(Ending::Checkmate { winner: Color::White }))
+);
+println!("{}", game[Terminus]);
+```
+
+`game.apply("e4")`, `game.apply("Nbd2")`, and `game.apply("O-O")` all
+work directly; UCI and SAN mix freely at every call site.
+
 ## Status
 
 Full move legality: piece movement, captures, promotion, castling,
-en passant, check/checkmate/stalemate, plus time controls. Not yet:
-draw rules (repetition, fifty-move, insufficient material).
+en passant, check/checkmate/stalemate, time controls, SAN and PGN
+import (the Opera Game and the Immortal Game fold to mate in the test
+suite). Not yet: draw rules (repetition, fifty-move, insufficient
+material), SAN emission / PGN export, variations.
 
 ## License
 

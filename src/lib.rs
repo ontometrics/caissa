@@ -27,6 +27,18 @@
 //! # Ok::<(), caissa::Rejected>(())
 //! ```
 //!
+//! Or in SAN, which is *resolved* against the legal actions rather than
+//! interpreted — and whole classic games fold straight from their PGN:
+//!
+//! ```
+//! use caissa::Game;
+//!
+//! let game = ["e4", "e5", "Nf3", "Nc6", "Bb5"]
+//!     .into_iter()
+//!     .try_fold(Game::new(), |game, san| game.apply(san))?;
+//! # Ok::<(), caissa::Rejected>(())
+//! ```
+//!
 //! The reducer enforces full legality around the king: a move that leaves
 //! your own king attacked is rejected ([`Rejected::IntoCheck`] — one rule
 //! that covers pins, moving into check, and ignoring check). A game is
@@ -52,8 +64,10 @@ mod game;
 pub mod notation;
 mod ops;
 mod piece;
+pub mod pgn;
 mod position;
 mod reduce;
+mod san;
 mod square;
 mod timeline;
 
@@ -61,7 +75,9 @@ pub use action::{Action, IntoAction};
 pub use clock::Clocked;
 pub use game::{Game, Ply, Terminus};
 pub use piece::{Color, Piece, Role, Wing};
+pub use pgn::import;
 pub use position::Position;
 pub use reduce::{Change, Edit, Ending, Mode, Rejected, expand, in_check, legal_actions, mode, reduce};
+pub use san::{Origin, San};
 pub use square::Square;
 pub use timeline::{Frame, Timeline};

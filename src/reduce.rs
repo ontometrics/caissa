@@ -1,6 +1,7 @@
 use crate::action::Action;
 use crate::piece::{Color, Piece, Role, Wing};
 use crate::position::Position;
+use crate::san::San;
 use crate::square::Square;
 
 /// Why an action was not accepted. Errors are data: each variant carries
@@ -36,6 +37,10 @@ pub enum Rejected {
     OutOfTime,
     /// A flag claim while the mover still has time on the clock.
     StillOnTime,
+    /// A SAN that no legal action matches.
+    NoMatch { san: San },
+    /// A SAN that several legal actions satisfy — needs disambiguation.
+    AmbiguousSan { candidates: Vec<Action> },
 }
 
 /// Whether a game is still being played, or has been.

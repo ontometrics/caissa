@@ -118,7 +118,7 @@ impl Position {
     /// action-shaped: an [`Action`](crate::Action), a `(Square, Square)`
     /// pair, or a string like `"h2h4"` / `"h7h8q"`.
     pub fn play(self, action: impl IntoAction) -> Result<Position, Rejected> {
-        reduce(self, action.into_action()?)
+        reduce(self, action.into_action(self)?)
     }
 
     /// Derive this position's [`Mode`] — playing, or played. Costs a pass
