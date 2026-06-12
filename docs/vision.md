@@ -353,6 +353,39 @@ student's W − Ŵ gap, and "you should have played the sacrifice" is
 precisely the claim that the student trusted their running count where
 it was wrong.
 
+**The Moneyball refinement.** The rebuttal that turned out to be the
+mechanism (Rob): maybe the model was just focused on material and
+never saw that, in acquiring it, one side was digging itself a fatal
+hole — a better-trained model would have seen the outcome coming. Yes:
+the W − Ŵ gap is not mystical, it is *feature-shaped*. Kieseritzky was
+the scout maximizing the legible statistic while the illegible ones —
+king in the center, sleeping pieces, opening lines — cratered. The
+hole was visible the whole time, in features he wasn't weighing. The
+history of chess ran the full Moneyball arc: the Romantic era was a
+market inefficiency (material priced too high, gambits systematically
+underpriced, Anderssen arbitraging the gap), and then Steinitz played
+Billy Beane — positional principles were the better feature set, the
+market repriced, the romantic gambits stopped working. Brilliance is a
+market inefficiency, and like all of them it gets arbitraged away.
+
+The limit that keeps it interesting: under bounded compute the gap
+shrinks and *migrates* but never vanishes — some positions are
+irreducibly deep, which is why even the strongest learned evaluators
+still search. So brilliance is relative to an estimator class, and the
+detector upgrades accordingly: a move's brilliance is **the rank of
+estimator required before it stops looking like a sacrifice** — run
+the trajectory under a ladder of estimators (material only; plus
+development; plus king safety; plus shallow search; …) and record
+where the illusion dissolves. Era-relative brilliance falls out for
+free: what stunned 1851 is an instant recapture today.
+
+This closes a loop with the encoding laboratory: features *are*
+encodings — the phrase book and the key family are candidate features
+— so discovering better encodings and shrinking the estimator's blind
+spots are the same research program. And the coach's job restates one
+final time: not just shrinking the student's gap, but *installing
+features* — teaching the on-base percentages of chess.
+
 #### The dictionary: snapshot is the default
 
 Where does W live? (Rob): in an OO app you would build a board, place
