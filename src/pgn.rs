@@ -67,7 +67,8 @@ pub fn parse(text: &str) -> Result<Pgn, Rejected> {
 /// [`Game::apply`]. A result marker that contradicts what the board says
 /// (a checkmate for the other side, say) is rejected; markers the board
 /// cannot verify — resignations, agreed draws, flag falls — are accepted
-/// as written.
+/// as written. Of a multi-game file, only the first game is read:
+/// parsing stops at the first result marker.
 pub fn import(text: &str) -> Result<Game, Rejected> {
     let pgn = parse(text)?;
     let game = pgn
