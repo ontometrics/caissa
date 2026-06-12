@@ -71,8 +71,16 @@ impl Game {
         self.mode
     }
 
-    /// Number of plies played. White makes the odd plies (1st, 3rd, …),
-    /// Black the even — `self[ply].turn()` says who moves next.
+    /// Number of plies played. A *ply* is a half-move — one action by one
+    /// player — the term game theory uses (layers of the game tree, like
+    /// plies of plywood) because chess's "move" confusingly means a pair:
+    /// `1. e4 e5` is one move but two plies. The ply is this crate's
+    /// natural unit, since the fold steps one action at a time and every
+    /// ply gets its own entry in the history. White makes the odd plies
+    /// (1st, 3rd, …), Black the even — `self[ply].turn()` says who moves
+    /// next — and a publication's move number is just `ply / 2 + 1`,
+    /// which is exactly what [`Game::score`] prints. A game that ends in
+    /// "17 moves" by White's mate is 33 plies: Black never answered.
     pub fn plies(&self) -> usize {
         self.log.len()
     }
@@ -151,6 +159,7 @@ impl fmt::Display for Game {
 /// A timeline index: either an absolute ply count or a distance back from
 /// the end of the game. Mostly built implicitly — a `usize` is a
 /// `Ply::Number`, and [`Terminus`]` - n` is a `Ply::FromEnd(n)`.
+/// (A ply is a half-move; see [`Game::plies`] for the full etymology.)
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Ply {
     Number(usize),
