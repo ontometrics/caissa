@@ -302,6 +302,24 @@ a cache:
   it. Store the visited, learn the rest, and let FEN (v0.7) be the
   permanent key.
 
+**No maze: the position is the Markov state.** The objection to check
+(Rob): many roads reach the same board, and forward probabilities must
+not depend on the road. By construction they don't — the dictionary
+keys on the value, never the route; the log lives in `Game`, and the
+dictionary never sees it. The precise claim: `Position` carries
+*exactly* the path residue that changes the future (castling rights, a
+live en-passant window) and nothing else — the Markov property: given
+the position, the future is independent of the path. The one piece of
+counterfeit residue, a dead en-passant square no pawn can use, is
+laundered by `repetition_key` — which is why the dictionary keys on
+it. The king's-pawn and knight-first roads into the same opening
+differ structurally by exactly that residue, and merge to one entry
+(`dictionary_test.rs`). The honest margin: FIDE itself breaks the
+Markov property at the edges — repetition counts and the fifty-move
+clock make a few futures depend on history — and that dependence lives
+at `Game` level, above the dictionary, exactly where the architecture
+already put those rules.
+
 ### 5. The coach — the destination
 
 The founding grievance (Rob): first game of computer chess in the
