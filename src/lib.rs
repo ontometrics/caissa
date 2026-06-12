@@ -59,6 +59,7 @@
 //! - draw rules (repetition, fifty-move, insufficient material)
 
 mod action;
+pub mod classics;
 mod clock;
 mod game;
 pub mod notation;

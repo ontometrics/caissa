@@ -131,6 +131,7 @@ Emission is resolution's inverse, and the tests hold it to that:
 - [x] SAN resolved against `legal_actions()`; UCI and SAN mix freely — `v0.3.0`
 - [x] PGN import — the Opera Game and the Immortal Game fold to mate — `v0.3.0`
 - [x] Score emission, letters and figurines; `import(game.score())` round-trips — `v0.4.0`
+- [x] `classics` module — famous games and openings as ready-made fixtures, plus `Piece::white`/`Piece::black` — `v0.5.0`
 - [ ] Draw rules: threefold repetition, fifty-move, insufficient material
 - [ ] Full PGN export with tag pairs
 - [ ] FEN import/export (start positions for `Game::from_position`)

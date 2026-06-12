@@ -35,3 +35,13 @@ pub struct Piece {
     pub color: Color,
     pub role: Role,
 }
+
+impl Piece {
+    pub fn white(role: Role) -> Piece {
+        Piece { color: Color::White, role }
+    }
+
+    pub fn black(role: Role) -> Piece {
+        Piece { color: Color::Black, role }
+    }
+}

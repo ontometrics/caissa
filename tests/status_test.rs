@@ -1,21 +1,7 @@
+use caissa::classics::fools_mate;
 use caissa::notation::*;
 use caissa::{Color, Ending, Game, Mode, Piece, Position, Rejected, Role};
 use googletest::prelude::*;
-
-fn fools_mate() -> Game {
-    ["f2f3", "e7e5", "g2g4", "d8h4"]
-        .into_iter()
-        .try_fold(Game::new(), |game, action| game.apply(action))
-        .unwrap()
-}
-
-fn white(role: Role) -> Piece {
-    Piece { color: Color::White, role }
-}
-
-fn black(role: Role) -> Piece {
-    Piece { color: Color::Black, role }
-}
 
 mod check_rules {
     use super::*;
@@ -23,8 +9,8 @@ mod check_rules {
     #[test]
     fn moving_into_check_is_rejected() {
         let board = Position::empty(Color::White)
-            .with(e1, white(Role::King))
-            .with(e8, black(Role::Rook));
+            .with(e1, Piece::white(Role::King))
+            .with(e8, Piece::black(Role::Rook));
 
         let result = board.play("e1e2");
 
@@ -34,8 +20,8 @@ mod check_rules {
     #[test]
     fn stepping_out_of_the_line_of_fire_is_fine() {
         let board = Position::empty(Color::White)
-            .with(e1, white(Role::King))
-            .with(e8, black(Role::Rook));
+            .with(e1, Piece::white(Role::King))
+            .with(e8, Piece::black(Role::Rook));
 
         assert_that!(board.in_check(Color::White), eq(true));
         assert_that!(board.play("e1d1"), ok(anything()));
@@ -44,9 +30,9 @@ mod check_rules {
     #[test]
     fn a_pinned_piece_cannot_move() {
         let board = Position::empty(Color::White)
-            .with(e1, white(Role::King))
-            .with(e2, white(Role::Rook))
-            .with(e8, black(Role::Rook));
+            .with(e1, Piece::white(Role::King))
+            .with(e2, Piece::white(Role::Rook))
+            .with(e8, Piece::black(Role::Rook));
 
         let result = board.play("e2a2");
 
@@ -56,9 +42,9 @@ mod check_rules {
     #[test]
     fn a_pinned_piece_can_slide_along_the_pin() {
         let board = Position::empty(Color::White)
-            .with(e1, white(Role::King))
-            .with(e2, white(Role::Rook))
-            .with(e8, black(Role::Rook));
+            .with(e1, Piece::white(Role::King))
+            .with(e2, Piece::white(Role::Rook))
+            .with(e8, Piece::black(Role::Rook));
 
         assert_that!(board.play("e2e8"), ok(anything()));
     }
@@ -66,9 +52,9 @@ mod check_rules {
     #[test]
     fn ignoring_check_is_rejected() {
         let board = Position::empty(Color::White)
-            .with(e1, white(Role::King))
-            .with(a1, white(Role::Rook))
-            .with(e8, black(Role::Rook));
+            .with(e1, Piece::white(Role::King))
+            .with(a1, Piece::white(Role::Rook))
+            .with(e8, Piece::black(Role::Rook));
 
         let result = board.play("a1b1");
 
@@ -93,8 +79,8 @@ mod endings {
     #[test]
     fn check_with_an_escape_is_still_playing() {
         let board = Position::empty(Color::White)
-            .with(e1, white(Role::King))
-            .with(e8, black(Role::Rook));
+            .with(e1, Piece::white(Role::King))
+            .with(e8, Piece::black(Role::Rook));
 
         assert_that!(board.in_check(Color::White), eq(true));
         assert_that!(board.mode(), eq(Mode::Playing));
@@ -103,8 +89,8 @@ mod endings {
     #[test]
     fn no_moves_without_check_is_stalemate() {
         let board = Position::empty(Color::Black)
-            .with(a8, black(Role::King))
-            .with(c7, white(Role::Queen));
+            .with(a8, Piece::black(Role::King))
+            .with(c7, Piece::white(Role::Queen));
 
         assert_that!(board.in_check(Color::Black), eq(false));
         assert_that!(board.mode(), eq(Mode::Played(Ending::Stalemate)));
@@ -113,8 +99,8 @@ mod endings {
     #[test]
     fn a_game_born_from_a_terminal_position_is_already_played() {
         let board = Position::empty(Color::Black)
-            .with(a8, black(Role::King))
-            .with(c7, white(Role::Queen));
+            .with(a8, Piece::black(Role::King))
+            .with(c7, Piece::white(Role::Queen));
 
         let game = Game::from_position(board);
 
@@ -171,8 +157,8 @@ mod derived_queries {
     #[test]
     fn a_position_with_one_legal_action_forces_it() {
         let board = Position::empty(Color::White)
-            .with(a1, white(Role::King))
-            .with(b8, black(Role::Rook));
+            .with(a1, Piece::white(Role::King))
+            .with(b8, Piece::black(Role::Rook));
 
         // b1 and b2 are covered by the rook; only a1a2 remains.
         assert_that!(
@@ -185,8 +171,8 @@ mod derived_queries {
     #[test]
     fn legal_actions_shrink_under_check() {
         let board = Position::empty(Color::White)
-            .with(e1, white(Role::King))
-            .with(e8, black(Role::Rook));
+            .with(e1, Piece::white(Role::King))
+            .with(e8, Piece::black(Role::Rook));
 
         // Every legal action must be a king move off the e-file.
         let escapes: Vec<_> = board.legal_actions().collect();

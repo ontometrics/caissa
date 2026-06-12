@@ -2,14 +2,6 @@ use caissa::notation::*;
 use caissa::{Action, Color, Ending, Game, Mode, Origin, Piece, Position, Rejected, Role, San};
 use googletest::prelude::*;
 
-fn white(role: Role) -> Piece {
-    Piece { color: Color::White, role }
-}
-
-fn black(role: Role) -> Piece {
-    Piece { color: Color::Black, role }
-}
-
 mod resolution {
     use super::*;
 
@@ -20,7 +12,7 @@ mod resolution {
             .try_fold(Game::new(), |game, san| game.apply(san))
             .unwrap();
 
-        assert_that!(game.position().at(b5), some(eq(white(Role::Bishop))));
+        assert_that!(game.position().at(b5), some(eq(Piece::white(Role::Bishop))));
         assert_that!(game.plies(), eq(5));
     }
 
@@ -31,14 +23,14 @@ mod resolution {
             .and_then(|p| p.play("e5"))
             .unwrap();
 
-        assert_that!(position.at(e5), some(eq(black(Role::Pawn))));
+        assert_that!(position.at(e5), some(eq(Piece::black(Role::Pawn))));
     }
 
     #[test]
     fn an_undescribed_origin_resolves_when_unique() {
         let position = Position::default().play("Nf3").unwrap();
 
-        assert_that!(position.at(f3), some(eq(white(Role::Knight))));
+        assert_that!(position.at(f3), some(eq(Piece::white(Role::Knight))));
     }
 
     #[test]
@@ -60,8 +52,8 @@ mod disambiguation {
     #[test]
     fn an_ambiguous_san_returns_the_candidates() {
         let board = Position::empty(Color::White)
-            .with(a1, white(Role::Rook))
-            .with(h1, white(Role::Rook));
+            .with(a1, Piece::white(Role::Rook))
+            .with(h1, Piece::white(Role::Rook));
 
         let result = board.play("Re1");
 
@@ -79,26 +71,26 @@ mod disambiguation {
     #[test]
     fn a_file_settles_the_ambiguity() {
         let board = Position::empty(Color::White)
-            .with(a1, white(Role::Rook))
-            .with(h1, white(Role::Rook));
+            .with(a1, Piece::white(Role::Rook))
+            .with(h1, Piece::white(Role::Rook));
 
         let position = board.play("Rae1").unwrap();
 
-        assert_that!(position.at(e1), some(eq(white(Role::Rook))));
+        assert_that!(position.at(e1), some(eq(Piece::white(Role::Rook))));
         assert_that!(position.at(a1), none());
-        assert_that!(position.at(h1), some(eq(white(Role::Rook))));
+        assert_that!(position.at(h1), some(eq(Piece::white(Role::Rook))));
     }
 
     #[test]
     fn a_rank_settles_it_when_a_file_cannot() {
         let board = Position::empty(Color::White)
-            .with(a1, white(Role::Rook))
-            .with(a5, white(Role::Rook));
+            .with(a1, Piece::white(Role::Rook))
+            .with(a5, Piece::white(Role::Rook));
 
         let position = board.play("R1a3").unwrap();
 
-        assert_that!(position.at(a3), some(eq(white(Role::Rook))));
-        assert_that!(position.at(a5), some(eq(white(Role::Rook))));
+        assert_that!(position.at(a3), some(eq(Piece::white(Role::Rook))));
+        assert_that!(position.at(a5), some(eq(Piece::white(Role::Rook))));
     }
 
     #[test]
@@ -106,17 +98,17 @@ mod disambiguation {
         // File e is ambiguous (e2, e6), rank 4 is ambiguous (a4, h4) —
         // only the full square names the mover.
         let board = Position::empty(Color::White)
-            .with(e2, white(Role::Queen))
-            .with(e6, white(Role::Queen))
-            .with(a4, white(Role::Queen))
-            .with(h4, white(Role::Queen));
+            .with(e2, Piece::white(Role::Queen))
+            .with(e6, Piece::white(Role::Queen))
+            .with(a4, Piece::white(Role::Queen))
+            .with(h4, Piece::white(Role::Queen));
 
         assert_that!(board.play("Qee4"), err(anything()));
         assert_that!(board.play("Q4e4"), err(anything()));
 
         let position = board.play("Qa4e4").unwrap();
 
-        assert_that!(position.at(e4), some(eq(white(Role::Queen))));
+        assert_that!(position.at(e4), some(eq(Piece::white(Role::Queen))));
         assert_that!(position.at(a4), none());
     }
 }
@@ -126,22 +118,22 @@ mod promotion {
 
     #[test]
     fn promotion_san_resolves_to_the_promote_action() {
-        let board = Position::empty(Color::White).with(h7, white(Role::Pawn));
+        let board = Position::empty(Color::White).with(h7, Piece::white(Role::Pawn));
 
         let position = board.play("h8=Q").unwrap();
 
-        assert_that!(position.at(h8), some(eq(white(Role::Queen))));
+        assert_that!(position.at(h8), some(eq(Piece::white(Role::Queen))));
     }
 
     #[test]
     fn a_capturing_underpromotion_reads_like_a_game_score() {
         let board = Position::empty(Color::White)
-            .with(h7, white(Role::Pawn))
-            .with(g8, black(Role::Rook));
+            .with(h7, Piece::white(Role::Pawn))
+            .with(g8, Piece::black(Role::Rook));
 
         let position = board.play("hxg8=N").unwrap();
 
-        assert_that!(position.at(g8), some(eq(white(Role::Knight))));
+        assert_that!(position.at(g8), some(eq(Piece::white(Role::Knight))));
     }
 }
 
@@ -157,8 +149,8 @@ mod castling_and_suffixes {
 
         let castled = italian.play("O-O").unwrap();
 
-        assert_that!(castled.at(g1), some(eq(white(Role::King))));
-        assert_that!(castled.at(f1), some(eq(white(Role::Rook))));
+        assert_that!(castled.at(g1), some(eq(Piece::white(Role::King))));
+        assert_that!(castled.at(f1), some(eq(Piece::white(Role::Rook))));
     }
 
     #[test]

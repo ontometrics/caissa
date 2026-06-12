@@ -5,14 +5,6 @@ use caissa::notation::*;
 use caissa::{Color, Edit, Piece, Position, Role, expand};
 use googletest::prelude::*;
 
-fn white(role: Role) -> Piece {
-    Piece { color: Color::White, role }
-}
-
-fn black(role: Role) -> Piece {
-    Piece { color: Color::Black, role }
-}
-
 fn fold(line: &[&str]) -> Position {
     line.iter()
         .try_fold(Position::default(), |position, action| position.play(*action))
@@ -30,7 +22,7 @@ mod simple_prototypes {
             change.edits,
             eq(&vec![
                 Edit::Lift(e2),
-                Edit::Place(e4, white(Role::Pawn)),
+                Edit::Place(e4, Piece::white(Role::Pawn)),
             ])
         );
         assert_that!(change.passant, some(eq(e3)));
@@ -47,7 +39,7 @@ mod simple_prototypes {
             eq(&vec![
                 Edit::Lift(d5),
                 Edit::Lift(e4),
-                Edit::Place(d5, white(Role::Pawn)),
+                Edit::Place(d5, Piece::white(Role::Pawn)),
             ])
         );
     }
@@ -67,8 +59,8 @@ mod compound_prototypes {
             eq(&vec![
                 Edit::Lift(e1),
                 Edit::Lift(h1),
-                Edit::Place(g1, white(Role::King)),
-                Edit::Place(f1, white(Role::Rook)),
+                Edit::Place(g1, Piece::white(Role::King)),
+                Edit::Place(f1, Piece::white(Role::Rook)),
             ])
         );
     }
@@ -84,7 +76,7 @@ mod compound_prototypes {
             eq(&vec![
                 Edit::Lift(d5),
                 Edit::Lift(e5),
-                Edit::Place(d6, white(Role::Pawn)),
+                Edit::Place(d6, Piece::white(Role::Pawn)),
             ])
         );
     }
@@ -92,8 +84,8 @@ mod compound_prototypes {
     #[test]
     fn promotion_places_what_the_pawn_becomes() {
         let board = Position::empty(Color::White)
-            .with(h7, white(Role::Pawn))
-            .with(g8, black(Role::Rook));
+            .with(h7, Piece::white(Role::Pawn))
+            .with(g8, Piece::black(Role::Rook));
 
         let change = expand(board, "h7g8q".parse().unwrap()).unwrap();
 
@@ -102,7 +94,7 @@ mod compound_prototypes {
             eq(&vec![
                 Edit::Lift(g8),
                 Edit::Lift(h7),
-                Edit::Place(g8, white(Role::Queen)),
+                Edit::Place(g8, Piece::white(Role::Queen)),
             ])
         );
     }
