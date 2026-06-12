@@ -118,6 +118,13 @@ Emission is resolution's inverse, and the tests hold it to that:
 Chess is now rules-complete: every way a game can legally move or end is
 in the reducer and the layers above it.
 
+The project's vocabulary and direction live in
+[docs/vision.md](docs/vision.md) — the load-bearing terms (prefix
+sharing, the interpreter, derived-never-stored, domain equivalence) and
+the open horizons: playing, learning, and game encodings that might make
+learning more powerful. Per-feature decision records sit beside it in
+[docs/](docs/).
+
 ## Status
 
 - [x] Pure reducer — from–to actions, one error type, errors as data — `v0.1.0`
