@@ -66,6 +66,25 @@ flag is no flag, an unclaimed threefold keeps playing (`claim_flag`,
 fivefold, seventy-five-move, dead position. The position arms; the
 rules say who fires. Nothing happens by itself unless FIDE says it must.
 
+**Laws have one address.** The complaint this project answers (Rob):
+software implements common knowledge *residually* — a rule's
+enforcement smeared across call sites, with no single place where the
+law is stated. Castling is the worked counterexample. "Rights only
+ever shrink; the king's first step forfeits both wings forever" is
+*stated* once (the doc comment on `Rights`), *enforced* once (the
+evaluator's per-edit bookkeeping — the one door every move walks
+through), and *witnessed* once (tests named for the law). Three
+mechanisms make one-address laws possible: a **choke point** (all
+state change compiles to `Edit`s through one `apply`; laws enforce at
+the door — before the interpreter refactor this law had two addresses,
+and the refactor's real product was collapsing them); **law as
+absence** (`Rights` has `clear` and no `set` — "nothing restores them"
+is a path that doesn't exist, the strongest enforcement at zero
+runtime cost); and **derivation** (a stored consequence can drift from
+its law; a derived value *is* the law). The smell, stated crisply:
+when a rule has to live in a wiki to survive, its address in the code
+is "everywhere."
+
 **Time as data.** The core never reads a clock. `Timeline` annotates
 the log with stamps (generic — integers in tests, `Instant` in
 production); `started`/`ended` form a Snodgrass valid-time interval
