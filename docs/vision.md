@@ -303,6 +303,56 @@ simulator's true values. Chess skill is, in part, carrying a good
 estimator of W in your head; the coach's job is improving the
 student's estimator, and to do that it needs the real one.
 
+#### The Mencken trap and the Bellman answer
+
+The mind-bender (Rob): if every position has split odds, then a move
+is simply the one that reaches the position strongest for your side —
+but that's quick, simple, and wrong (Mencken), because the beauty of
+chess is accepting a decline now in favor of a larger goal a few steps
+down the road.
+
+The resolution is sharper than either horn: **greedy on the true W is
+optimal** — Bellman's principle. The true value function is the fixed
+point of its own law: W(p) equals the best, over legal moves, of the
+opponent-flipped W of the successor. At the fixed point there are no
+sacrifices. When Anderssen gave away both rooks and the queen, the
+*truth never declined* — the Immortal Game's W stays pinned while the
+material count collapses four times. What declines in a sacrifice is
+the estimate, never the value. **A sacrifice is an estimator
+illusion.**
+
+So the Mencken trap is real, but it lives in the gap **W − Ŵ**: every
+playable estimator — material count, structural heuristics, a trained
+network, the human running count — is wrong somewhere, and "accept a
+decline for a larger goal" is the phenomenology of trusting the truth
+against your own estimator. The "few steps down the road" is exactly
+the horizon at which the estimator becomes reliable again, and search
+is the repair mechanism: minimax to depth d is greedy on a better
+estimator built by unrolling. Depth substitutes for accuracy.
+Courage, in chess, is W − Ŵ arbitrage.
+
+Two consequences worth building:
+
+- **Brilliance is measurable.** A brilliant move preserves W while
+  cratering Ŵ for the audience's estimator class. Run *two*
+  trajectories over a game — the material estimate and the rollout
+  truth — and their divergence locates the sacrifices. The Immortal
+  Game is the canonical test: the material line dives four times; the
+  truth line never flinches. (The material trajectory is computable
+  today — it is a fold over the capture tray; the truth line awaits
+  the player horizon's rollouts.)
+- **The Bellman equation is a law with one address.** W's
+  self-consistency is checkable everywhere: tablebases satisfy it
+  exactly, estimators violate it, and the violation — the Bellman
+  residual — is both where search helps most and what
+  temporal-difference learning minimizes. Learning is the law
+  enforcing itself.
+
+The coach inherits the deepest version: teaching is shrinking the
+student's W − Ŵ gap, and "you should have played the sacrifice" is
+precisely the claim that the student trusted their running count where
+it was wrong.
+
 #### The dictionary: snapshot is the default
 
 Where does W live? (Rob): in an OO app you would build a board, place
