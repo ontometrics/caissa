@@ -150,6 +150,44 @@ laboratory*: one game, many projections, measured against each other
 on the same learning task. The log being the single source of truth is
 what makes the comparison fair.
 
+#### Phrases: compression as pattern discovery
+
+The conjecture (Rob): LLMs work as well as they do because context
+ballooned — a token is never just "I saw this word"; it is seen with
+its position, inside its phrases. The chess parallel should exist:
+patterns compressed into tiny sequences that the learning gloms onto.
+
+The mechanism with a name: **byte-pair encoding**. BPE knows nothing
+about words; it statistically discovers frequent subsequences in a
+corpus and compresses each into one token — which is exactly "find the
+phrases and make them units." And chess has already chunked itself by
+hand: openings have *names*, ECO codes are a phrase dictionary, a
+tabiya is a known-position chunk, "fianchetto" and "recapture" are
+idioms. Centuries of players don't name the arbitrary — the names are
+evidence the compressible patterns exist. We hand-compressed one
+ourselves: castling is four `Edit`s wearing one name.
+
+The first encoding-lab experiment, fully concrete: run BPE over a
+large PGN corpus projected as Edit streams (and, for comparison,
+action streams and SAN streams). The learned merge table *is a
+discovered phrase book of chess*. Two measurable questions follow:
+
+1. **Alignment** — does the discovered phrase book rediscover the
+   human one? Do merges converge on recapture pairs, fianchettos,
+   whole ECO opening systems? Where machine chunks and human names
+   disagree is exactly where something interesting lives.
+2. **Leverage** — do sequence models trained on phrase tokens learn
+   faster or play better than ones trained on raw move tokens, holding
+   the corpus fixed? That is the ballooned-context conjecture, run as
+   an experiment.
+
+The derived queries extend the idea: check, capture, mode, and
+think-time can ride along as cheap semantic markup — the
+part-of-speech tags of chess — so the context isn't just bigger, it's
+annotated. The Edit stream is the natural substrate for all of this
+because its vocabulary is small and its compound moves are visible
+structure: the phrases have something honest to be made of.
+
 ## Sequencing
 
 Near-term (the checklist): v0.7.0 interchange (FEN + tagged PGN
