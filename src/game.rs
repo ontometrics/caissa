@@ -2,10 +2,11 @@ use std::fmt;
 use std::ops::{Index, Sub};
 
 use crate::action::{Action, IntoAction};
-use crate::piece::{Color, Role};
+use crate::piece::{Color, Piece, Role};
 use crate::position::Position;
 use crate::reduce::{DrawReason, Ending, Mode, Rejected, mode, reduce};
 use crate::san::{to_figurine, to_san};
+use crate::square::Square;
 
 /// A game is its starting position plus the log of accepted actions —
 /// the log is the canonical record (it is morally a PGN); replay is a fold,
@@ -112,6 +113,19 @@ impl Game {
             .count()
     }
 
+    /// The capture tray: every piece taken so far, in the order they left
+    /// the board. There is no capture *list* — captured pieces simply
+    /// cease to exist when the interpreter lifts them — but the log knows:
+    /// each ply's victim is whatever stood on the struck square in the
+    /// position before the move. Derived, never stored.
+    pub fn captures(&self) -> Vec<Piece> {
+        self.log
+            .iter()
+            .enumerate()
+            .filter_map(|(ply, &action)| victim(self.history[ply], action))
+            .collect()
+    }
+
     /// Claim the draw the position has armed — threefold repetition or the
     /// fifty-move rule. Like an unnoticed flag, an unclaimed draw keeps
     /// the game playing; the automatic draws (fivefold, seventy-five,
@@ -207,6 +221,24 @@ impl Game {
             mode: Mode::Playing,
         }
     }
+}
+
+/// What `action` removed from the board of `before`: the piece on the
+/// struck square, or — for the diagonal pawn move onto an empty square —
+/// the pawn that just passed beside it.
+fn victim(before: Position, action: Action) -> Option<Piece> {
+    let (from, to) = match action {
+        Action::Move { from, to } | Action::Promote { from, to, .. } => (from, to),
+    };
+    if let Some(piece) = before.at(to) {
+        return Some(piece);
+    }
+    let mover = before.at(from)?;
+    if mover.role == Role::Pawn && from.file() != to.file() {
+        let passed = Square::new(to.file(), from.rank())?;
+        return before.at(passed);
+    }
+    None
 }
 
 impl fmt::Display for Game {

@@ -209,6 +209,40 @@ mod promotion {
     }
 }
 
+/// There is no capture list — taken pieces cease to exist — but the log
+/// knows every victim: the capture tray is derived, never stored.
+mod the_capture_tray {
+    use caissa::classics::{opera_game, ruy_lopez};
+
+    use super::*;
+
+    #[test]
+    fn a_quiet_game_has_an_empty_tray() {
+        assert_that!(ruy_lopez().captures(), eq(&vec![]));
+    }
+
+    #[test]
+    fn the_opera_game_fills_the_tray_in_order() {
+        let captures = opera_game().captures();
+
+        assert_that!(captures.len(), eq(12));
+        // Morphy's first victim: the e5 pawn (4. dxe5)...
+        assert_that!(captures[0], eq(piece(Color::Black, Role::Pawn)));
+        // ...and the famous last sacrifice: the queen (16... Nxb8).
+        assert_that!(captures[11], eq(piece(Color::White, Role::Queen)));
+    }
+
+    #[test]
+    fn en_passant_credits_the_passed_pawn() {
+        let game = ["e2e4", "a7a6", "e4e5", "d7d5", "e5d6"]
+            .into_iter()
+            .try_fold(Game::new(), |game, action| game.apply(action))
+            .unwrap();
+
+        assert_that!(game.captures(), eq(&vec![piece(Color::Black, Role::Pawn)]));
+    }
+}
+
 /// A game is its log: replay is a fold, undo is a prefix.
 mod the_game_log {
     use super::*;
