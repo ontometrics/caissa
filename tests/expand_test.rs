@@ -11,6 +11,8 @@ fn fold(line: &[&str]) -> Position {
         .unwrap()
 }
 
+/// Quiet moves and captures: two and three edits, victim lifted
+/// first.
 mod simple_prototypes {
     use super::*;
 
@@ -45,6 +47,8 @@ mod simple_prototypes {
     }
 }
 
+/// Castling, en passant, promotion: bigger expansions through the
+/// same total evaluator — nothing is special after expand.
 mod compound_prototypes {
     use super::*;
 

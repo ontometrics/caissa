@@ -9,6 +9,8 @@ fn piece(color: Color, role: Role) -> Piece {
     Piece { color, role }
 }
 
+/// The thesis: moves are pure transitions, composition is the API —
+/// values in, values out, earlier positions intact.
 mod pure_transitions {
     use super::*;
 
@@ -62,6 +64,7 @@ mod pure_transitions {
     }
 }
 
+/// Errors are data: every refusal names what was wrong, and where.
 mod rejections {
     use super::*;
 
@@ -128,6 +131,8 @@ mod rejections {
     }
 }
 
+/// The one move where from–to underdetermines intent, so it gets its
+/// own action variant — and its own rules.
 mod promotion {
     use super::*;
 
@@ -204,6 +209,7 @@ mod promotion {
     }
 }
 
+/// A game is its log: replay is a fold, undo is a prefix.
 mod the_game_log {
     use super::*;
 

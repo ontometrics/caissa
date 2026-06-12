@@ -3,6 +3,8 @@ use caissa::notation::*;
 use caissa::{Color, Piece, Position, Rejected, Role, Wing};
 use googletest::prelude::*;
 
+/// The king's two-square move, interpreted: both pieces land where
+/// they should, and the rights are spent.
 mod castling {
     use super::*;
 
@@ -39,6 +41,8 @@ mod castling {
     }
 }
 
+/// Rights only ever shrink: kings forfeit both wings, rooks only
+/// their own — and nothing restores them.
 mod forfeits {
     use super::*;
 
@@ -80,6 +84,8 @@ mod forfeits {
     }
 }
 
+/// Castling refused: out of, through, or into check — or simply
+/// blocked.
 mod denials {
     use super::*;
 
@@ -118,6 +124,8 @@ mod denials {
     }
 }
 
+/// The position's other memory: a one-ply window onto the square the
+/// double push skipped.
 mod en_passant {
     use super::*;
 

@@ -20,6 +20,7 @@ fn finished() -> Timeline<u32> {
         .unwrap()
 }
 
+/// The replay as a value: every ply with the time it took, in order.
 mod frames {
     use super::*;
 
@@ -44,6 +45,8 @@ mod frames {
     }
 }
 
+/// Time only moves forward, and the clock never excuses an illegal
+/// move.
 mod time_discipline {
     use super::*;
 
@@ -76,6 +79,8 @@ mod time_discipline {
     }
 }
 
+/// started/ended as a valid-time interval: None while the game is
+/// being played, closed by the move that ends it.
 mod snodgrass_interval {
     use super::*;
 

@@ -12,6 +12,8 @@ fn midgame() -> Clocked<u32, u32> {
         .unwrap()
 }
 
+/// Clocks are derived, never stored: spent time is a fold over each
+/// player's frames, ticking only against the player to move.
 mod spending {
     use super::*;
 
@@ -41,6 +43,8 @@ mod spending {
     }
 }
 
+/// Exhaustion arms the ending; the claim fires it. Nothing happens
+/// by itself — an unclaimed flag is no flag.
 mod flagging {
     use super::*;
 

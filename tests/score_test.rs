@@ -6,6 +6,8 @@ use caissa::notation::*;
 use caissa::{Action, Color, Game, Piece, Position, Role, import, to_san};
 use googletest::prelude::*;
 
+/// The score as a publication prints it: numbers, suffixes, the
+/// result the board attests, figurines on request.
 mod newspaper {
     use super::*;
 
@@ -37,6 +39,8 @@ mod newspaper {
     }
 }
 
+/// Emission is resolution's inverse: import(game.score()) must
+/// reproduce the game.
 mod round_trips {
     use super::*;
 
@@ -54,6 +58,8 @@ mod round_trips {
     }
 }
 
+/// Minimal disambiguation and the tricky spellings: en passant,
+/// capturing underpromotion.
 mod precision {
     use super::*;
 

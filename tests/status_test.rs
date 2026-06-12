@@ -3,6 +3,8 @@ use caissa::notation::*;
 use caissa::{Color, Ending, Game, Mode, Piece, Position, Rejected, Role};
 use googletest::prelude::*;
 
+/// One rule covers pins, moving into check, and ignoring check: the
+/// resulting position may not leave your king attacked.
 mod check_rules {
     use super::*;
 
@@ -62,6 +64,8 @@ mod check_rules {
     }
 }
 
+/// Mode is derived from the board, never stored: mate, stalemate, or
+/// still playing.
 mod endings {
     use super::*;
 
@@ -112,6 +116,8 @@ mod endings {
     }
 }
 
+/// There is no position after the end of a game — and undo brings
+/// the game back to life without recomputation.
 mod after_the_end {
     use super::*;
 
@@ -151,6 +157,7 @@ mod after_the_end {
     }
 }
 
+/// Things a position can tell you without storing them.
 mod derived_queries {
     use super::*;
 

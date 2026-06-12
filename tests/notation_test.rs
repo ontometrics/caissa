@@ -2,6 +2,8 @@ use caissa::notation::*;
 use caissa::{Action, Color, Piece, Position, Rejected, Role};
 use googletest::prelude::*;
 
+/// The `>>` operator is the arrow we have: `from >> to` builds an
+/// action, and a role on the end turns it into a promotion.
 mod building_actions {
     use super::*;
 
@@ -19,6 +21,8 @@ mod building_actions {
     }
 }
 
+/// Adding an action to a position applies it; Results chain, and a
+/// rejection short-circuits the rest of the line.
 mod board_arithmetic {
     use super::*;
 

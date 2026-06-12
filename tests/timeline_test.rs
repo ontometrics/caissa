@@ -3,6 +3,8 @@ use caissa::notation::*;
 use caissa::{Color, Piece, Position, Role};
 use googletest::prelude::*;
 
+/// game[n] is the position after n plies — the memoized fold,
+/// indexed.
 mod jump_notation {
     use super::*;
 
@@ -45,6 +47,8 @@ mod jump_notation {
     }
 }
 
+/// End-relative indices: the final position, and the boards just
+/// before it.
 mod terminus {
     use super::*;
 
@@ -88,6 +92,8 @@ mod terminus {
     }
 }
 
+/// Off either end, indexing panics like a slice; position_at is the
+/// checked form.
 mod out_of_range {
     use super::*;
 
@@ -106,6 +112,7 @@ mod out_of_range {
     }
 }
 
+/// Undo drops the last cache entry — no replay.
 mod undo {
     use super::*;
 

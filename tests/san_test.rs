@@ -2,6 +2,8 @@ use caissa::notation::*;
 use caissa::{Action, Color, Ending, Game, Mode, Origin, Piece, Position, Rejected, Role, San};
 use googletest::prelude::*;
 
+/// SAN is a description, not an instruction: resolution finds the
+/// unique legal action it admits.
 mod resolution {
     use super::*;
 
@@ -46,6 +48,8 @@ mod resolution {
     }
 }
 
+/// The Origin ladder: nothing, then file, then rank, then the full
+/// square — and ambiguity returns the candidates.
 mod disambiguation {
     use super::*;
 
@@ -113,6 +117,7 @@ mod disambiguation {
     }
 }
 
+/// Promotion SAN maps onto Action::Promote, captures included.
 mod promotion {
     use super::*;
 
@@ -137,6 +142,8 @@ mod promotion {
     }
 }
 
+/// O-O desugars to the king's two-square move; + and # are the
+/// writer's claims — tolerated, not trusted.
 mod castling_and_suffixes {
     use super::*;
 
