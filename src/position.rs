@@ -55,10 +55,13 @@ impl Rights {
     }
 }
 
+/// The standard starting position — what `Game::new()` begins from: an
+/// empty board with both armies placed, White to move, full castling
+/// rights. (For sparse test boards, start from [`Position::empty`] and
+/// compose with [`Position::with`] instead.)
 impl Default for Position {
     fn default() -> Position {
-        let mut board = [None; 64];
-        let back = [
+        let back_rank = [
             Role::Rook,
             Role::Knight,
             Role::Bishop,
@@ -68,13 +71,16 @@ impl Default for Position {
             Role::Knight,
             Role::Rook,
         ];
-        for (file, role) in back.into_iter().enumerate() {
-            board[file] = Some(Piece { color: Color::White, role });
-            board[8 + file] = Some(Piece { color: Color::White, role: Role::Pawn });
-            board[48 + file] = Some(Piece { color: Color::Black, role: Role::Pawn });
-            board[56 + file] = Some(Piece { color: Color::Black, role });
+        let mut position = Position::empty(Color::White);
+        for (file, role) in back_rank.into_iter().enumerate() {
+            let file = file as u8;
+            position = position
+                .with(Square::at(file, 0), Piece::white(role)) // rank 1
+                .with(Square::at(file, 1), Piece::white(Role::Pawn)) // rank 2
+                .with(Square::at(file, 6), Piece::black(Role::Pawn)) // rank 7
+                .with(Square::at(file, 7), Piece::black(role)); // rank 8
         }
-        Position { board, turn: Color::White, rights: Rights::ALL, passant: None }
+        position
     }
 }
 
