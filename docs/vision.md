@@ -227,7 +227,53 @@ phrases (contiguous, BPE-discoverable) capture *tactics and book*;
 recurrences modulo coarser keys capture *plans*; a powerful encoding
 carries both.
 
-### 4. The coach — the destination
+### 4. Where the game tips: value, shifts, and the inevitable
+
+The precedent (Rob): Ed Thorp cracked card counting with a simulator —
+remove each card from the deck, rerun the million-hand simulation, and
+the outcome deltas yield a point value per card, for player and house.
+Perturb, simulate, measure: value emerges from counterfactuals at
+scale. Chess is simpler in one way — there is no hidden deck. Every
+position already has a number: **W(position)**, the likelihood either
+side wins. The player horizon builds its estimator for free (W is what
+rollouts measure — by simulation first, by a learned function later),
+and the fold gives everything downstream:
+
+**The shift series.** Map W over `history` and difference it: ΔW per
+ply — derived, never stored, like everything else. Most plies barely
+move it; a handful move it violently. *Knowledge should come from
+understanding where the shifts occurred and why* — a game's
+information is not uniform over its plies, and the shift series says
+exactly where it lives.
+
+**The inevitable is measurable.** A lot of chess is unfolding the
+inevitable after one side gained an advantage that is nearly
+impossible to unwind. Operationally: inevitability is the fraction of
+playouts in which the disadvantaged side still saves the game. When W
+pins near 1 and playout variance collapses, the rest is execution —
+low-information plies, almost fully compressible. This re-grounds the
+encodings section from the other side: the incompressible kernel of a
+game is its shift points; weight tokens by information, train on the
+moments, skim the unfolding.
+
+**Why, by ablation.** Thorp's move, translated. The cause of a shift
+is isolable counterfactually: re-simulate from the road not taken (the
+played move's regret against the best); ablate at the structure level
+(which pawn, removed, restores W?). Per-card point values become
+per-piece, per-structure values — position-specific instead of
+folklore (the 1/3/3/5/9 piece values were early, crude estimates of
+exactly this quantity). The *why* a coach speaks is ΔW attributed in
+the key-family vocabulary: the shift at ply 23 happened because the
+skeleton changed into one you don't know the plans for.
+
+The closing symmetry: a human player's running judgment — material
+count plus structural heuristics — is the cheap on-line approximation
+of W, exactly what the card counter's running count is to the
+simulator's true values. Chess skill is, in part, carrying a good
+estimator of W in your head; the coach's job is improving the
+student's estimator, and to do that it needs the real one.
+
+### 5. The coach — the destination
 
 The founding grievance (Rob): first game of computer chess in the
 1980s, still remembers the first win against it — and in forty years,
@@ -236,8 +282,10 @@ was Nf3"); they referee; they crush. None of them know the player.
 
 The diagnosis: coaching requires two things engines structurally lack.
 A **model of the student**, and a **vocabulary between centipawns and
-grandmaster prose**. The first three horizons turn out to be the
-missing parts:
+grandmaster prose**. The other horizons turn out to be the missing
+parts — the shift series most of all: a coach reviews the three plies
+where W jumped, not all forty, and explains them in the key-family
+vocabulary:
 
 - *The log is the student's record.* Every game a replayable value;
   the coach was there for all of them and can return to any ply.
