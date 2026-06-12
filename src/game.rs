@@ -1,8 +1,11 @@
+use std::fmt;
 use std::ops::{Index, Sub};
 
 use crate::action::{Action, IntoAction};
+use crate::piece::Color;
 use crate::position::Position;
-use crate::reduce::{Mode, Rejected, mode, reduce};
+use crate::reduce::{Ending, Mode, Rejected, mode, reduce};
+use crate::san::{to_figurine, to_san};
 
 /// A game is its starting position plus the log of accepted actions —
 /// the log is the canonical record (it is morally a PGN); replay is a fold,
@@ -90,6 +93,37 @@ impl Game {
         log.into_iter().try_fold(start, reduce)
     }
 
+    /// The game as a publication would print it:
+    /// `1. e4 e5 2. Nf3 d6 … 17. Rd8# 1-0`. Also what `Display` shows.
+    pub fn score(&self) -> String {
+        self.scored(to_san)
+    }
+
+    /// The score in figurine algebraic notation, each move wearing its
+    /// mover's glyph: `17. ♖d8# 1-0`.
+    pub fn figurines(&self) -> String {
+        self.scored(to_figurine)
+    }
+
+    fn scored(&self, write: fn(Position, Action) -> Result<String, Rejected>) -> String {
+        let mut out = String::new();
+        for (ply, &action) in self.log.iter().enumerate() {
+            let position = self.history[ply];
+            if position.turn() == Color::White {
+                out.push_str(&format!("{}. ", ply / 2 + 1));
+            }
+            out.push_str(&write(position, action).expect("the log holds only accepted actions"));
+            out.push(' ');
+        }
+        out.push_str(match self.mode {
+            Mode::Played(Ending::Checkmate { winner: Color::White }) => "1-0",
+            Mode::Played(Ending::Checkmate { winner: Color::Black }) => "0-1",
+            Mode::Played(Ending::Stalemate) => "1/2-1/2",
+            _ => "*",
+        });
+        out
+    }
+
     /// A new game without the last action. With the fold memoized this is
     /// just dropping the last cache entry — no replay. The mode needs no
     /// recomputation either: the position we return to once accepted a
@@ -105,6 +139,12 @@ impl Game {
             history: self.history[..plies + 1].to_vec(),
             mode: Mode::Playing,
         }
+    }
+}
+
+impl fmt::Display for Game {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.score())
     }
 }
 

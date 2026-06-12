@@ -102,13 +102,27 @@ println!("{}", game[Terminus]);
 `game.apply("e4")`, `game.apply("Nbd2")`, and `game.apply("O-O")` all
 work directly; UCI and SAN mix freely at every call site.
 
+And games write themselves back out, newspaper-style — `game.score()`
+(also its `Display`) emits minimally-disambiguated SAN with check and
+mate suffixes supplied by the reducer, and `game.figurines()` gives the
+publication figurine form:
+
+```text
+1. e4 e5 2. Nf3 d6 … 16. Qb8+ Nxb8 17. Rd8# 1-0
+1. e4 e5 2. ♘f3 d6 … 16. ♕b8+ ♞xb8 17. ♖d8# 1-0
+```
+
+Emission is resolution's inverse, and the tests hold it to that:
+`import(game.score())` reproduces the game.
+
 ## Status
 
 Full move legality: piece movement, captures, promotion, castling,
 en passant, check/checkmate/stalemate, time controls, SAN and PGN
 import (the Opera Game and the Immortal Game fold to mate in the test
-suite). Not yet: draw rules (repetition, fifty-move, insufficient
-material), SAN emission / PGN export, variations.
+suite), score emission in letters and figurines. Not yet: draw rules
+(repetition, fifty-move, insufficient material), full PGN export with
+tags, variations.
 
 ## License
 

@@ -196,7 +196,7 @@ impl fmt::Display for Position {
     }
 }
 
-fn glyph(piece: Piece) -> char {
+pub(crate) fn glyph(piece: Piece) -> char {
     match (piece.color, piece.role) {
         (Color::White, Role::King) => '♔',
         (Color::White, Role::Queen) => '♕',

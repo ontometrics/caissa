@@ -10,9 +10,9 @@
 use std::str::FromStr;
 
 use crate::action::Action;
-use crate::piece::{Color, Role, Wing};
-use crate::position::Position;
-use crate::reduce::{Rejected, legal_actions};
+use crate::piece::{Color, Piece, Role, Wing};
+use crate::position::{Position, glyph};
+use crate::reduce::{Ending, Mode, Rejected, in_check, legal_actions, mode, reduce};
 use crate::square::Square;
 
 /// What a SAN string asserts about the move it names. The variants mirror
@@ -93,6 +93,139 @@ impl San {
             [] => Err(Rejected::NoMatch { san: self }),
             _ => Err(Rejected::AmbiguousSan { candidates }),
         }
+    }
+}
+
+impl San {
+    /// The minimal correct description of a legal `action` in `position` —
+    /// the inverse of [`San::resolve`]. Disambiguation is computed the way
+    /// publications do: nothing if the role-and-target already name one
+    /// action, else file, else rank, else the full square.
+    pub fn describe(position: Position, action: Action) -> San {
+        match action {
+            Action::Promote { from, to, into } => San::Promote {
+                origin: pawn_origin(from, to),
+                to,
+                into,
+            },
+            Action::Move { from, to } => {
+                let piece = position.at(from).expect("a legal move starts on a piece");
+                if piece.role == Role::King && from.file().abs_diff(to.file()) == 2 {
+                    let wing = if to.file() == 6 { Wing::King } else { Wing::Queen };
+                    return San::Castle(wing);
+                }
+                let origin = if piece.role == Role::Pawn {
+                    pawn_origin(from, to)
+                } else {
+                    minimal_origin(position, piece.role, from, to)
+                };
+                San::Move { role: piece.role, origin, to }
+            }
+        }
+    }
+}
+
+/// Pawn convention: captures always name their file, pushes never need to.
+fn pawn_origin(from: Square, to: Square) -> Origin {
+    if from.file() == to.file() {
+        Origin::Anywhere
+    } else {
+        Origin::File(from.file())
+    }
+}
+
+fn minimal_origin(position: Position, role: Role, from: Square, to: Square) -> Origin {
+    let rivals: Vec<Square> = legal_actions(position)
+        .filter_map(|action| match action {
+            Action::Move { from: f, to: t }
+                if t == to && position.at(f).is_some_and(|piece| piece.role == role) =>
+            {
+                Some(f)
+            }
+            _ => None,
+        })
+        .collect();
+    if rivals.len() <= 1 {
+        Origin::Anywhere
+    } else if rivals.iter().filter(|r| r.file() == from.file()).count() == 1 {
+        Origin::File(from.file())
+    } else if rivals.iter().filter(|r| r.rank() == from.rank()).count() == 1 {
+        Origin::Rank(from.rank())
+    } else {
+        Origin::Square(from)
+    }
+}
+
+/// `action` written as SAN — `"Nbd2"`, `"exd6"`, `"O-O-O"`, `"Rd8#"` —
+/// suitable for a game score. The check/mate suffix comes from the
+/// reducer, so this also validates the action.
+pub fn to_san(position: Position, action: Action) -> Result<String, Rejected> {
+    notate(position, action, letter)
+}
+
+/// `action` in figurine algebraic notation — `"♖d8#"`, `"♛h4#"` — the
+/// publication style, with the mover's own glyph.
+pub fn to_figurine(position: Position, action: Action) -> Result<String, Rejected> {
+    notate(position, action, |role, color| {
+        if role == Role::Pawn {
+            String::new()
+        } else {
+            glyph(Piece { color, role }).to_string()
+        }
+    })
+}
+
+fn letter(role: Role, _: Color) -> String {
+    match role {
+        Role::Pawn => "",
+        Role::Knight => "N",
+        Role::Bishop => "B",
+        Role::Rook => "R",
+        Role::Queen => "Q",
+        Role::King => "K",
+    }
+    .to_string()
+}
+
+fn notate(
+    position: Position,
+    action: Action,
+    spell: impl Fn(Role, Color) -> String,
+) -> Result<String, Rejected> {
+    let next = reduce(position, action)?;
+    let mover = position.turn();
+    let captures = match action {
+        Action::Move { from, to } | Action::Promote { from, to, .. } => {
+            position.at(to).is_some()
+                || (position.at(from).is_some_and(|piece| piece.role == Role::Pawn)
+                    && from.file() != to.file())
+        }
+    };
+    let takes = if captures { "x" } else { "" };
+    let body = match San::describe(position, action) {
+        San::Castle(Wing::King) => "O-O".to_string(),
+        San::Castle(Wing::Queen) => "O-O-O".to_string(),
+        San::Move { role, origin, to } => {
+            format!("{}{}{takes}{to}", spell(role, mover), origin_text(origin))
+        }
+        San::Promote { origin, to, into } => {
+            format!("{}{takes}{to}={}", origin_text(origin), spell(into, mover))
+        }
+    };
+    let suffix = match mode(next) {
+        Mode::Played(Ending::Checkmate { .. }) => "#",
+        _ if in_check(next, next.turn()) => "+",
+        _ => "",
+    };
+    Ok(format!("{body}{suffix}"))
+}
+
+fn origin_text(origin: Origin) -> String {
+    match origin {
+        Origin::Anywhere => String::new(),
+        Origin::File(file) => ((b'a' + file) as char).to_string(),
+        Origin::Rank(rank) => ((b'1' + rank) as char).to_string(),
+        Origin::Square(square) => square.to_string(),
     }
 }
 
