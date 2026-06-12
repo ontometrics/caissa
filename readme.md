@@ -117,12 +117,25 @@ Emission is resolution's inverse, and the tests hold it to that:
 
 ## Status
 
-Full move legality: piece movement, captures, promotion, castling,
-en passant, check/checkmate/stalemate, time controls, SAN and PGN
-import (the Opera Game and the Immortal Game fold to mate in the test
-suite), score emission in letters and figurines. Not yet: draw rules
-(repetition, fifty-move, insufficient material), full PGN export with
-tags, variations.
+- [x] Pure reducer — from–to actions, one error type, errors as data — `v0.1.0`
+- [x] Full piece movement, captures, promotion — `v0.1.0`
+- [x] Check, checkmate, stalemate — one rule: never leave your king attacked — `v0.1.0`
+- [x] Castling (the king's two-square move) and en passant — `v0.1.0`
+- [x] `Mode::{Playing, Played}` — O(1) game-over gating, no move checking after the end — `v0.1.0`
+- [x] Memoized history with jump notation: `game[n]`, `game[Terminus - 1]` — `v0.1.0`
+- [x] Timestamped `Timeline`, realtime replay, Snodgrass interval (`ended() == None` while playing) — `v0.1.0`
+- [x] `Clocked` speedchess: per-player budgets, derived clocks, flag claims — `v0.1.0`
+- [x] Operator notation: `e2 >> e4`, `position + action` — `v0.1.0`
+- [x] Board `Display` (Unicode, rank 8 up) — `v0.1.0`
+- [x] The interpreter: actions expand from prototypes into `Edit`s, applied by a total evaluator — `v0.2.0`
+- [x] SAN resolved against `legal_actions()`; UCI and SAN mix freely — `v0.3.0`
+- [x] PGN import — the Opera Game and the Immortal Game fold to mate — `v0.3.0`
+- [x] Score emission, letters and figurines; `import(game.score())` round-trips — `v0.4.0`
+- [ ] Draw rules: threefold repetition, fifty-move, insufficient material
+- [ ] Full PGN export with tag pairs
+- [ ] FEN import/export (start positions for `Game::from_position`)
+- [ ] Variations — parsed and represented, not just rejected
+- [ ] Engine fast path: ungated movegen for search workloads
 
 ## License
 
