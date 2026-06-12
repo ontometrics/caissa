@@ -188,6 +188,45 @@ annotated. The Edit stream is the natural substrate for all of this
 because its vocabulary is small and its compound moves are visible
 structure: the phrases have something honest to be made of.
 
+#### From phrases to plans: invariances and the key family
+
+The worked example (Rob): Kasparov played the English Opening a
+bazillion times. Are openings about mounting an attack or preparing a
+defense? Both — and that duality is the point. An opening's purpose is
+to steer the game into *structures whose plans you know better than
+your opponent does*; attacking and defensive plans are cached against
+the same key. In this project's vocabulary: **theory is prefix sharing
+at cultural scale** — a shared prefix tree the whole chess world
+maintains — and a repertoire is one player's deeply-practiced subtree.
+Preparation is memoization of plans, keyed by structure.
+
+"Can we see similar attacks across his games? Of course" — and that
+*of course* is where BPE stops. BPE discovers contiguous idioms;
+Kasparov's recurring attacks transpose: same plan, different move
+order, shifted a file, a tempo later. The sequences differ while the
+structure trajectory recurs. The caissa-native answer is the tool we
+already built for draws, generalized: **a family of coarsening keys**.
+
+    Eq  ⊃  repetition_key  ⊃  pawn-structure key  ⊃  material key
+
+Each coarser equivalence reveals a different recurrence: structural
+equality is identity; `repetition_key` finds repetitions (draws) and
+transpositions (opening books); a pawn-skeleton key — pawns only, the
+slowest-changing layer of the position — finds *plans*, because two
+games share a middlegame plan exactly when they share a structure,
+whatever the piece dance above it looked like. Strategy lives in the
+quotient spaces.
+
+Player-conditioned corpora make it style: tokenize a player's games
+and the phrase distribution is a signature — preparation made visible.
+Measurable experiments: cluster Kasparov's English games by
+pawn-skeleton trajectory and see whether the famous attacks cluster
+with them; train an attribution model and ask whether the phrase book
+alone identifies the player. The encoding lab's claim sharpens to:
+phrases (contiguous, BPE-discoverable) capture *tactics and book*;
+recurrences modulo coarser keys capture *plans*; a powerful encoding
+carries both.
+
 ## Sequencing
 
 Near-term (the checklist): v0.7.0 interchange (FEN + tagged PGN
