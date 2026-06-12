@@ -27,22 +27,38 @@ actions is illegal *for whatever reason the reducer would have given*.
 Zero matches → rejected; two or more → `AmbiguousSan { candidates }`.
 Errors stay data.
 
-A parsed description is just constraints:
+A parsed SAN is a sum type — every assertion a named state, no
+option-soup. Its variants mirror `Action`'s (plus `Castle`, which
+desugars):
 
 ```rust
-struct Description {
-    role: Role,
-    to: Square,
-    from_file: Option<u8>,   // the "b" in Nbd2
-    from_rank: Option<u8>,   // the "1" in R1e2
-    promotion: Option<Role>, // the "=Q"
-    // capture "x", check "+", mate "#" are validated but not needed to resolve
+/// What a SAN string asserts about the move it names.
+enum San {
+    Castle(Wing),                                     // O-O, O-O-O
+    Move { role: Role, origin: Origin, to: Square },  // e4, Nf3, Nbd2, Rxe5
+    Promote { origin: Origin, to: Square, into: Role }, // e8=Q, exd8=Q
+}
+
+/// Where the mover comes from — as much as the text cares to say.
+enum Origin {
+    Anywhere,       // Nf3
+    File(u8),       // Nbd2 — the b-knight
+    Rank(u8),       // R1e2 — the first-rank rook
+    Square(Square), // Qh4e1 — fully spelled out
 }
 ```
 
-`O-O` / `O-O-O` skip description entirely: they desugar directly to the
-king's two-square move for the side to move. Castling already has no
-notation in the core; this is the import-time sugar we promised.
+What the old `Option`-pile couldn't say, this says plainly: missingness
+has a name (`Anywhere`), full-square disambiguation is a real state
+instead of "both options coincidentally set", and promotion is its own
+variant exactly as it is in `Action` — so `San::Move` resolves against
+`Action::Move` candidates and `San::Promote` against `Action::Promote`,
+with `Origin` as the filter on from-squares. Capture `x`, check `+`,
+and mate `#` are validated during parse but never needed to resolve.
+
+`O-O` / `O-O-O` desugar directly to the king's two-square move for the
+side to move. Castling already has no notation in the core; this is the
+import-time sugar we promised.
 
 ### 2. `IntoAction` becomes position-aware
 
