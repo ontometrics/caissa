@@ -11,33 +11,47 @@ fn fold(line: &[&str]) -> Position {
         .unwrap()
 }
 
-/// Quiet moves and captures: two and three edits, victim lifted
+/// A move IS its list of edits — nothing carried alongside. A double
+/// push says so in the stream with a Skip; a capture lifts the victim
 /// first.
 mod simple_prototypes {
     use super::*;
 
     #[test]
-    fn a_quiet_move_is_two_edits() {
-        let change = expand(Position::default(), "e2e4".parse().unwrap()).unwrap();
+    fn a_double_push_arms_en_passant_in_the_stream() {
+        let edits = expand(Position::default(), "e2e4".parse().unwrap()).unwrap();
 
         assert_that!(
-            change.edits,
+            edits,
             eq(&vec![
                 Edit::Lift(e2),
                 Edit::Place(e4, Piece::white(Role::Pawn)),
+                Edit::Skip(e3),
             ])
         );
-        assert_that!(change.passant, some(eq(e3)));
+    }
+
+    #[test]
+    fn a_single_push_arms_nothing() {
+        let edits = expand(Position::default(), "e2e3".parse().unwrap()).unwrap();
+
+        assert_that!(
+            edits,
+            eq(&vec![
+                Edit::Lift(e2),
+                Edit::Place(e3, Piece::white(Role::Pawn)),
+            ])
+        );
     }
 
     #[test]
     fn a_capture_lifts_the_victim_first() {
         let board = fold(&["e2e4", "d7d5"]);
 
-        let change = expand(board, "e4d5".parse().unwrap()).unwrap();
+        let edits = expand(board, "e4d5".parse().unwrap()).unwrap();
 
         assert_that!(
-            change.edits,
+            edits,
             eq(&vec![
                 Edit::Lift(d5),
                 Edit::Lift(e4),
@@ -56,10 +70,10 @@ mod compound_prototypes {
     fn castling_expands_from_its_prototype() {
         let board = fold(&["e2e4", "e7e5", "g1f3", "g8f6", "f1c4", "f8c5"]);
 
-        let change = expand(board, "e1g1".parse().unwrap()).unwrap();
+        let edits = expand(board, "e1g1".parse().unwrap()).unwrap();
 
         assert_that!(
-            change.edits,
+            edits,
             eq(&vec![
                 Edit::Lift(e1),
                 Edit::Lift(h1),
@@ -73,10 +87,10 @@ mod compound_prototypes {
     fn en_passant_lifts_the_passed_pawn() {
         let board = fold(&["e2e4", "a7a6", "e4e5", "d7d5"]);
 
-        let change = expand(board, "e5d6".parse().unwrap()).unwrap();
+        let edits = expand(board, "e5d6".parse().unwrap()).unwrap();
 
         assert_that!(
-            change.edits,
+            edits,
             eq(&vec![
                 Edit::Lift(d5),
                 Edit::Lift(e5),
@@ -91,10 +105,10 @@ mod compound_prototypes {
             .with(h7, Piece::white(Role::Pawn))
             .with(g8, Piece::black(Role::Rook));
 
-        let change = expand(board, "h7g8q".parse().unwrap()).unwrap();
+        let edits = expand(board, "h7g8q".parse().unwrap()).unwrap();
 
         assert_that!(
-            change.edits,
+            edits,
             eq(&vec![
                 Edit::Lift(g8),
                 Edit::Lift(h7),

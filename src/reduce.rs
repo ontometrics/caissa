@@ -189,25 +189,25 @@ fn candidates(position: Position, from: Square, to: Square) -> Vec<Action> {
 }
 
 /// A primitive board edit — the instruction set actions compile down to.
-/// Lifting a square empties it; placing puts a piece there. Rights
-/// bookkeeping happens at this level too: lifting a king forfeits both
-/// its wings, lifting a corner forfeits that wing, so a captured rook
-/// costs the right the same way a moved one does.
+/// A primitive board edit — the three verbs every move compiles down to,
+/// and the complete instruction set: a move *is* its list of edits, with
+/// nothing carried alongside. `Lift` empties a square, `Place` fills one,
+/// and `Skip` marks the square a double-pushed pawn ran past, leaving it
+/// capturable en passant for the next ply only. Rights bookkeeping rides
+/// on `Lift`: lifting a king forfeits both its wings, lifting a corner
+/// forfeits that wing, so a captured rook costs the right the same way a
+/// moved one does — and the en-passant window resets every move, set only
+/// when a `Skip` says so.
+///
+/// Because the list is complete, it is also the data an animator, a
+/// network protocol, or a learning model wants — exactly what changed,
+/// including the en-passant window that a bolted-on field would have hidden
+/// from anyone reading only the stream.
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum Edit {
     Lift(Square),
     Place(Square, Piece),
-}
-
-/// What an accepted action does to the board: its expansion into edits,
-/// plus the en-passant square the move leaves behind. Every move expands
-/// from a prototype — a quiet move is two edits, a capture three,
-/// castling four. This is the data an animator or a network protocol
-/// wants: exactly which squares changed.
-#[derive(Clone, PartialEq, Eq, Debug)]
-pub struct Change {
-    pub edits: Vec<Edit>,
-    pub passant: Option<Square>,
+    Skip(Square),
 }
 
 /// The reducer: a pure transition from one position to the next —
@@ -225,10 +225,11 @@ pub fn reduce(position: Position, action: Action) -> Result<Position, Rejected> 
 }
 
 /// The interpreter's front half: validate the action against the position
-/// and expand it from its prototype into primitive [`Edit`]s. Castling is
-/// the biggest expansion — `e1c1` becomes lift the king, lift the rook,
-/// place them on c1 and d1 — but it is not otherwise special.
-pub fn expand(position: Position, action: Action) -> Result<Change, Rejected> {
+/// and expand it from its prototype into the primitive [`Edit`]s that
+/// describe it completely. Castling is the biggest expansion — `e1c1`
+/// becomes lift the king, lift the rook, place them on c1 and d1 — but it
+/// is not otherwise special, and a double push carries its own `Skip`.
+pub fn expand(position: Position, action: Action) -> Result<Vec<Edit>, Rejected> {
     let (from, to, promotion) = match action {
         Action::Move { from, to } => (from, to, None),
         Action::Promote { from, to, into } => (from, to, Some(into)),
@@ -284,16 +285,17 @@ pub fn expand(position: Position, action: Action) -> Result<Change, Rejected> {
     }
     edits.push(Edit::Lift(from));
     edits.push(Edit::Place(to, Piece { color: piece.color, role }));
+    // A double push arms the en-passant window — and says so in the stream.
+    if piece.role == Role::Pawn && from.rank().abs_diff(to.rank()) == 2 {
+        let skipped = Square::new(from.file(), (from.rank() + to.rank()) / 2)
+            .expect("between two on-board squares");
+        edits.push(Edit::Skip(skipped));
+    }
 
-    let passant = (piece.role == Role::Pawn && from.rank().abs_diff(to.rank()) == 2).then(|| {
-        Square::new(from.file(), (from.rank() + to.rank()) / 2).expect("between two on-board squares")
-    });
-
-    let change = Change { edits, passant };
-    if let Some(king) = threatened_king(position.apply(&change), piece.color) {
+    if let Some(king) = threatened_king(position.apply(&edits), piece.color) {
         return Err(Rejected::IntoCheck { king });
     }
-    Ok(change)
+    Ok(edits)
 }
 
 fn reaches(position: Position, piece: Piece, from: Square, to: Square) -> bool {
@@ -332,7 +334,7 @@ fn castle_wing(color: Color, to: Square) -> Option<Wing> {
     }
 }
 
-fn castle(position: Position, color: Color, wing: Wing) -> Result<Change, Rejected> {
+fn castle(position: Position, color: Color, wing: Wing) -> Result<Vec<Edit>, Rejected> {
     let rank = match color {
         Color::White => 0,
         Color::Black => 7,
@@ -365,17 +367,14 @@ fn castle(position: Position, color: Color, wing: Wing) -> Result<Change, Reject
             return Err(Rejected::IntoCheck { king: square });
         }
     }
-    // The prototype: two pieces lifted, two placed. Nothing else about
-    // castling survives expansion.
-    Ok(Change {
-        edits: vec![
-            Edit::Lift(king_from),
-            Edit::Lift(rook_from),
-            Edit::Place(king_to, Piece { color, role: Role::King }),
-            Edit::Place(rook_to, Piece { color, role: Role::Rook }),
-        ],
-        passant: None,
-    })
+    // The prototype: two pieces lifted, two placed, no Skip — so the
+    // en-passant window resets, as it must.
+    Ok(vec![
+        Edit::Lift(king_from),
+        Edit::Lift(rook_from),
+        Edit::Place(king_to, Piece { color, role: Role::King }),
+        Edit::Place(rook_to, Piece { color, role: Role::Rook }),
+    ])
 }
 
 fn pawn_reaches(position: Position, color: Color, from: Square, to: Square, dx: i8, dy: i8) -> bool {

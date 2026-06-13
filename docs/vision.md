@@ -161,11 +161,16 @@ derivable today, none stored:
 - **Action stream** — from–to tokens (~the AlphaZero move space).
   Compact; castling and promotion are opaque conventions.
 - **Edit stream** — the interpreter's instruction trace: `Lift(sq)`,
-  `Place(sq, piece)` — a vocabulary of ~832 symbols in which captures,
+  `Place(sq, piece)`, `Skip(sq)` — a small vocabulary in which captures,
   castles, promotions, and en passant are *visible structure* instead
   of special cases a model must infer. A game becomes a sentence in the
-  board's own assembly language. This one is unusual — possibly the
-  most caissa-native contribution to the question.
+  board's own assembly language. The stream is *complete*: a move is
+  exactly its edits, the en-passant window included (the `Skip` verb
+  exists precisely so the stream hides nothing — an earlier design
+  carried that window in a field beside the edits, and a model reading
+  only the stream would have missed which double pushes armed en
+  passant). This one is unusual — possibly the most caissa-native
+  contribution to the question.
 - **SAN stream** — the human prior baked into notation ("Nbd7" encodes
   role, destination, and ambiguity); what existing chess-LLM work reads.
 - **Board planes per ply** — 12×8×8 tensors straight from `history`,

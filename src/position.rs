@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::action::{Action, IntoAction};
 use crate::piece::{Color, Piece, Role, Wing};
-use crate::reduce::{Change, Edit, Mode, Rejected, in_check, legal_actions, mode, reduce};
+use crate::reduce::{Edit, Mode, Rejected, in_check, legal_actions, mode, reduce};
 use crate::square::Square;
 
 /// A chess position: the board, whose turn it is, and the two scraps of
@@ -295,16 +295,18 @@ impl Position {
         Ok(Position { board, turn, rights: Rights { remaining }, passant })
     }
 
-    /// The interpreter's back half: a total evaluator that folds a
-    /// [`Change`]'s edits over the board. Rights are bookkept per edit —
-    /// lifting a king forfeits both its wings, lifting (or vacating, or
-    /// capturing on) a corner forfeits that wing — so castling, rook
-    /// moves, and rook captures all pay the same way without anyone
-    /// special-casing them.
-    pub(crate) fn apply(self, change: &Change) -> Position {
+    /// The interpreter's back half: a total evaluator that folds a move's
+    /// [`Edit`]s over the board. The en-passant window resets every move,
+    /// reopened only when a `Skip` edit says a pawn just ran past. Rights
+    /// are bookkept per `Lift` — lifting a king forfeits both its wings,
+    /// lifting (or vacating, or capturing on) a corner forfeits that wing
+    /// — so castling, rook moves, and rook captures all pay the same way
+    /// without anyone special-casing them.
+    pub(crate) fn apply(self, edits: &[Edit]) -> Position {
         let mut board = self.board;
         let mut rights = self.rights;
-        for edit in &change.edits {
+        let mut passant = None;
+        for edit in edits {
             match *edit {
                 Edit::Lift(square) => {
                     if let Some(Piece { color, role: Role::King }) = board[square.index()] {
@@ -318,9 +320,10 @@ impl Position {
                     board[square.index()] = None;
                 }
                 Edit::Place(square, piece) => board[square.index()] = Some(piece),
+                Edit::Skip(square) => passant = Some(square),
             }
         }
-        Position { board, turn: self.turn.opponent(), rights, passant: change.passant }
+        Position { board, turn: self.turn.opponent(), rights, passant }
     }
 }
 

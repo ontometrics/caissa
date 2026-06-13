@@ -86,8 +86,7 @@ pub use piece::{Color, Piece, Role, Wing};
 pub use pgn::import;
 pub use position::Position;
 pub use reduce::{
-    Change, DrawReason, Edit, Ending, Mode, Rejected, expand, in_check, legal_actions, mode,
-    reduce,
+    DrawReason, Edit, Ending, Mode, Rejected, expand, in_check, legal_actions, mode, reduce,
 };
 pub use san::{Origin, San, to_figurine, to_san};
 pub use square::Square;
