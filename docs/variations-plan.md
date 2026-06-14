@@ -7,12 +7,14 @@ stated as the test that ends the work:
 ```rust
 use caissa::study::Study;
 
-// The mainline, with an alternative branching at White's third move.
-let study = Study::from(ruy_lopez())          // e4 e5 Nf3 Nc6 Bb5
-    .branch(&[2], "Bc4")?;                      // 3. Bc4 instead of Bb5
+let mainline  = ruy_lopez();                     // e4 e5 Nf3 Nc6 Bb5
+let variation = mainline.undo().apply("Bc4")?;   // …Nc6 3. Bc4 instead
+
+// Graft a whole line; the tree discovers where it diverges.
+let study = Study::from(mainline).with(variation);
 
 assert_that!(study.mainline().score().contains("3. Bb5"), eq(true));
-assert_that!(study.line(&[2, 0]).unwrap().position(), eq(/* after 3. Bc4 */));
+assert_that!(study.lines().count(), eq(2));
 ```
 
 ## Decisions (the part worth writing down)
@@ -36,6 +38,16 @@ fresh log.)
 Each node stays faithful to the crate's discipline — it stores the
 `Action` (the truth) and the resulting `Position` (the memoized fold),
 exactly as `Game` does. Derived, never stored.
+
+And the sharing is the *construction* mechanism, not just the storage:
+you build a study by grafting whole lines (`with(line)`), and the tree
+walks each new line from the root, coincides along the shared prefix,
+and branches where it diverges. The branch point is discovered, never
+addressed. The crate composes everything by folding values
+(`actions.try_fold(start, reduce)`); a study composes the same way, by
+absorbing games. No path of child-indices ever surfaces — that would be
+an address into the structure, the board-as-raw-indices smell the crate
+avoids everywhere else.
 
 ### 3. Mainline is the first child
 
@@ -65,41 +77,51 @@ maze/Markov boundary as before, seen from the other side.
 
 ## Proposed surface (red-pen welcome)
 
+Build by grafting lines; read by extracting lines. No path of indices
+appears anywhere — the tree is internal.
+
 ```rust
-pub struct Study { /* start: Position, lines: Vec<Node> */ }
+pub struct Study { /* start: Position, branches: Vec<Node> */ }
 struct Node { /* action: Action, position: Position, branches: Vec<Node> */ }
 
 impl Study {
-    pub fn new() -> Study;                         // from the standard start
-    pub fn from(game: Game) -> Study;              // a game is a study with no branches
+    pub fn new() -> Study;                  // the standard start, no moves
+    pub fn from(game: Game) -> Study;       // a game is a study of one line
     pub fn from_position(start: Position) -> Study;
 
-    pub fn branch(&self, at: &[usize], action: impl IntoAction)
-        -> Result<Study, Rejected>;                // add a continuation at a path
-    pub fn line(&self, path: &[usize]) -> Option<Game>;  // the game along a path
-    pub fn mainline(&self) -> Game;                // the all-zeros line
-    pub fn variations(&self, at: &[usize]) -> usize;     // how many children there
+    pub fn with(self, line: Game) -> Study; // graft a line; the shared prefix
+                                            // merges, first line added is mainline
+    pub fn mainline(&self) -> Game;                       // the first-child line
+    pub fn lines(&self) -> impl Iterator<Item = Game>;    // every line, mainline first
 }
 ```
 
-Navigation is by **path** (`&[usize]` of child indices from the root) —
-plain, `Copy`-friendly, and it mirrors jump notation. A functional
-zipper (focus + context) is the alternative; it is more elegant for
-heavy interactive editing but heavier than this feature needs now.
-Pinned as a possible later cursor type, not v0.8.
+You speak in games at every turn: a variation is built from the
+mainline with the `Game` vocabulary you already have (`undo`, `apply`),
+then absorbed whole. Reading gives games back, each carrying all the
+derived queries (decision 4). The only contract is that grafted lines
+share the study's start — they are variations *of one game* — which is
+automatic when you build them from the mainline or import them from one
+PGN.
+
+Deferred to a later cursor: single-move editing at a focus point
+(add/delete/promote one move). That is what tempted the `&[usize]`
+path; it belongs to a functional zipper (focus + context), not the
+high-level surface, and only matters once interactive editing does.
 
 Naming forks for you: `Study` (module `study`, so `study::Study` —
-mild stutter, common enough) vs `study::Tree` vs `study::Line`; and
-`branches` vs `children` vs `continuations` for a node's successors.
+mild stutter, common enough) vs `study::Tree` vs `study::Line`;
+`with(line)` vs `and(line)` vs `add(line)` for grafting; and `branches`
+vs `children` vs `continuations` for a node's successors.
 
 ## Stages
 
-1. The tree: `Study`, `Node`, `branch`, `line`, `mainline`,
-   `variations`. Building and navigating programmatically. Tests:
-   `Study::from(game)` round-trips its mainline; a branch at a ply is
-   reachable and its line projects to the right `Game`; a sub-variation
-   nests; an illegal branch action is rejected with the reducer's own
-   verdict.
+1. The tree: `Study`, `Node`, `with`, `mainline`, `lines`. Building by
+   grafting, reading by extracting. Tests: `Study::from(game)`'s
+   mainline is that game; grafting a variation yields two lines sharing
+   their prefix; a sub-variation (a variation off a variation) nests; a
+   line that diverges later branches deeper, not at the root; the first
+   line added stays the mainline.
 2. PGN variation **import**: turn today's "variations rejected loudly"
    into a recursive-descent parse of nested `(...)` into the tree.
 3. PGN variation **export**: a study writes `(...)` — the inverse, the
