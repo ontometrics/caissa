@@ -530,6 +530,51 @@ complementary, so the order is dictionary (the book) → a learned eval →
 *then* the council that blends them. Build the experts first; the
 weighting is the last, easy layer.
 
+#### Offense, defense, and the few forms of attack (Rob)
+
+A proposed council member: an *attack-focused* strategy. Black is
+always a ply behind — responding to White's initiative — and chess's
+depth is that both sides play offense and defense at once. But project
+onto *just the attack* and the forms are few: the Ruy Lopez's attacking
+plan recurs across thousands of games though no two boards match.
+
+The forms are few for a reason: **attack is low-dimensional because the
+target is fixed and the geometry is constrained.** There are only so
+many ways at a king on g8 — the h-file, the a2–g8 diagonal, the
+f7/h7/g7 sacrifices, the pawn storm, the back rank — so a few dozen
+named schemes cover most real attacks. Defense is high-dimensional;
+there are a thousand ways to be solid. That asymmetry is why attacking
+chess is taught as named motifs and defense as principles, and it says
+which projection is worth learning: the attack.
+
+Operationally it is another coarse key in the family — project a
+position onto its attacking structure (attackers, target, levers) and
+discard the rest. Under that key the Ruy's thousands of boards become
+*one form*, and the dictionary is small and dense: memorization works
+on attacks even though it drowns on positions ("too many positions"
+does not apply to "too few attacks"). The lazy lookup table, useless
+keyed by board, is viable keyed by attack-form.
+
+The tempo asymmetry is the **initiative**, a quantity that *flows*:
+White holds it by default, Black neutralizes to seize it, the
+counterattack is defense becoming offense. So offense and defense are
+the two ends of one variable, and that gives the council its gate —
+*attack-focused* and *defense-focused* as dual experts, weighted by who
+holds the initiative now, the weight flipping at the counterattack. It
+decomposes the evaluator itself: **Ŵ = attack_potential −
+vulnerability**, one expert per term; a sacrifice is the attack expert
+overruling the material expert because the initiative outweighs the
+piece.
+
+And it is a testable conjecture, not a flourish: cluster the *attacking
+phases* of a corpus and count the clusters. If the forms are few they
+will be few, and align with the named motifs; BPE over attack-projected
+streams should discover the motif vocabulary on its own. The hard part
+— defining the attack projection precisely — is real research, a north
+star with the others. But it sharpens the nearer work with a directive:
+do not only encode positions, encode attack-forms, because that is
+where the dimensionality collapses and learning gets cheap.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
