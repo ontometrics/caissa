@@ -635,6 +635,55 @@ when to complicate, when to simplify. Defining "mobilization" precisely
 and modeling the opponent are research, north stars with the rest; but
 variance is the axis that makes the value model honest.
 
+#### The annotator: a second interpreter that reads games (Rob)
+
+The question: an interpreter that rolls through classic games to
+*understand its own cases* — did Spassky fumble to Fischer, and on what
+move? Yes, and it is a second interpreter one altitude above the first.
+The move-interpreter (`expand`/`apply`) turns a move into board edits —
+what happened on the squares. The annotator turns a *game* into a
+narrative of decisions — what happened in the contest. It is the shift
+series operationalized: fold `history` through a W-estimator, difference
+it (ΔW per ply), and the plies where ΔW lurches against a player are
+their fumbles. "On what move" is the argmax of that player's loss. A
+fold, like everything here.
+
+"Understand its own cases" is the deeper half — case-based reasoning
+(the `cbr` crate's premise). Detecting the shift is not understanding
+it; *classifying* it is. Each fumble abstracts into a **case** keyed by
+position-type (the coarse key again): a back-rank oversight, a walked-
+into fork, a missed in-between move. Accumulate cases and you get a
+case base — and the attack-forms argument applies to mistakes too:
+**there are few kinds of blunder.** So the base is small and learnable,
+and the annotator understands a new fumble by recognizing it as an
+instance of a known kind — the leap from "ΔW spiked at move 29" to
+"Spassky did the thing he does."
+
+The honest limit: the verdict is **estimator-relative.** To judge
+Spassky you must see what Spassky saw; a material-only annotator flags
+every sacrifice as a fumble — the Moneyball gap in reverse, brilliance
+misread as blunder. A "fumble" is relative to the estimator class,
+exactly as brilliance was, so a weak annotator pointed at the masters
+reveals its *own* blind spots (why 1990s engines "disagreed" with
+grandmasters). Hence report confidence: clear fumbles — big ΔW a modest
+estimator sees, a hung queen, a one-move tactic — are reliable and
+teachable; subtle ones need a stronger judge and should say so rather
+than pronounce.
+
+It completes the coach by being one tool pointed two ways: annotate the
+masters to *teach* the case-types, annotate the student's own games to
+*diagnose* which cases they fall into. A fumble is the W − Ŵ gap
+localized to a ply; the case base is the catalog of how the gap
+manifests; the lesson is "here are your three recurring cases."
+
+And it is unusually near-term: the clear-blunder annotator is buildable
+now — `material` and `Minimax` are W-estimators, `history` and the
+`classics` are here, so `annotate(game) -> Vec<(ply, delta_w)>` is a
+fold plus a diff, and flagging the spikes finds a game's turning point.
+Point it at a classic and watch. The CBR case layer is the north star
+(it needs the position-type keys); the annotator's skeleton is a real
+next brick.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
