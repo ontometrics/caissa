@@ -96,6 +96,24 @@ up residual: the true statement degrades into tribal knowledge and
 wiki pages. This is the actual argument for the functional
 architecture: not elegance, *jurisdiction*.
 
+**Compose, don't address.** An interface should take domain values, not
+coordinates into its own data structure. The board makes you say
+`Square`, never `board[19]`; a study makes you graft a `Game`, never
+name a node by a path of child-indices. A raw index — `&[usize]`, an
+array offset, a node id — is plumbing: it forces the caller to know the
+internal shape and leaks the structure through the surface. The cure is
+always composition: build by folding or grafting values and let the
+structure discover where they fit. When `study.with(line)` replaced the
+proposed `branch(at: &[usize], action)`, prefix sharing stopped being a
+storage property and became the *construction* mechanism — the
+divergence point is discovered, not specified. And reaching for an
+address is usually a sign you pulled a low-level operation up too early:
+single-move editing wanted that path, and it belongs behind a proper
+cursor (a zipper — focus + context), not on the high-level surface.
+Same family as the residual-primitive smells (`&mut` in `Rights`, the
+`Option` beside `Change`): a surface that hadn't finished speaking the
+domain's language.
+
 **Time as data.** The core never reads a clock. `Timeline` annotates
 the log with stamps (generic — integers in tests, `Instant` in
 production); `started`/`ended` form a Snodgrass valid-time interval
