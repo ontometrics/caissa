@@ -486,6 +486,68 @@ spar (an opponent tuned to steer into the weak structures), and
 re-verify (the post-condition watched across future games). Every step
 is a fold over logs.
 
+### 6. Generalizing the game — extract, don't anticipate
+
+The question (Rob): should `Game` become a trait, with chess merely an
+implementation — and is a study branch then just a counterfactual?
+
+**The counterfactual is the real insight, and it is bigger than "chess
+is a game."** A study branch, an MCTS node, a Thorp ablation's
+road-not-taken, an analysis variation — all one operation: a
+counterfactual continuation from a state. The study tree, the search
+tree, and the analysis tree are *one structure viewed three ways*, and
+value semantics is what makes it free — a counterfactual is "keep the
+old value and explore." `study.with(line)` grafts a real line, MCTS
+expansion grafts a hypothetical one, ablation grafts the road not taken
+and re-simulates: one verb, three uses. That unification, not "chess is
+a game," is what would eventually justify an abstraction.
+
+**But abstract by extraction, not anticipation.** caissa is good
+*because* it was built concretely: chess pushed back and produced the
+fallible reducer, Mode-derived-not-stored, `repetition_key` as a domain
+equivalence, en passant as the third `Edit` verb, the Markov boundary.
+None of those would have surfaced from a guessed `trait Game`. The
+cautionary tale is in the same workspace — `effect-reducers`, the crate
+this one rejected on day one: an abstraction designed before its
+domain, with an infallible `reduce` that did not fit chess. A trait
+earns its existence when two honest implementations share it (a second
+game, or the first generic consumer), never before.
+
+**And the boundary is not "Game trait / chess impl" — it is the
+horizons.** Search, learning, and play are genuinely game-agnostic:
+AlphaZero is one architecture over chess, shogi, and go. *Those* want a
+trait; the chess crate implements it. The trait wants the **infallible**
+half — `actions()` plus a total `apply` — because search only ever
+applies moves it already enumerated as legal:
+
+```rust
+trait Rules {
+    type State;
+    type Action;
+    type Outcome;
+    fn actions(state: &Self::State) -> Vec<Self::Action>;       // legal continuations
+    fn apply(state: &Self::State, action: &Self::Action) -> Self::State;  // total on legal
+    fn outcome(state: &Self::State) -> Option<Self::Outcome>;   // None = ongoing
+}
+```
+
+This resolves the very first argument of the project. The
+fallible-vs-infallible reducer was never one question: `play()` is
+fallible because *humans* send illegal moves (validation at the door),
+and the search interface is infallible because it only explores the
+legal. Two layers, not one — and caissa already has both halves
+(`legal_actions` is the enumerator, `apply` the total evaluator; `play`
+is the human-facing sugar). `effect-reducers`' infallible reducer was
+not wrong; it was in the wrong layer.
+
+So: build `study` concretely now. Extract `Rules` when the player
+horizon arrives (it is the first consumer that genuinely needs the
+generic interface) or when a second game joins to keep the trait
+honest. The counterfactual tree is the structure study and search will
+turn out to share — design study so that shape reads clearly, but do
+not contort it toward a trait that has not yet earned two
+implementations.
+
 ## Sequencing
 
 Near-term (the checklist): v0.7.0 interchange (FEN + tagged PGN
