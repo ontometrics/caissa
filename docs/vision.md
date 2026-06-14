@@ -736,6 +736,43 @@ catastrophic regions where the boundary lives; the annotator pointed at
 random games is a fumble generator — bad moves with labeled
 consequences, the raw material for the case base of what-not-to-do.
 
+#### Credit assignment: the bow tied (Rob)
+
+This closes the founding grievance against the boundary. The 1980s app
+gave one bit at the end — won or lost — the sparsest signal there is,
+delivered after forty moves with no hint which move mattered. That is
+the hardest way to learn anything. Coaching is not "you lost"; it is
+"you lost *because of move 19*." Spreading the terminal bit back over
+the decisions that caused it is **credit assignment**, the central
+problem of all learning, human and machine. The shift series *is*
+credit assignment: ΔW names the ply that spent the game.
+
+So the simplest coaching and the first stage of learning are one
+operation. "Recognize what you did wrong and do not repeat it" is
+boundary recognition — and it is "do not do it again," not "here is the
+brilliancy you missed," for a reason: the best move is beyond a
+beginner (the W − Ŵ gap is enormous, unexecutable), but avoiding the
+disaster already fallen into is learnable. **Boundary before peak.** The
+human pedagogy and the machine curriculum are the same curve — negative
+first — and they meet here.
+
+What made it impossible then and possible now is one architectural
+choice. That app discarded the game the instant it ended; credit
+assignment is impossible without the record. caissa made the log the
+source of truth on day one, so a game is a replayable value — the coach
+was *there*, it can return to `game[19]`, set the position back up, and
+show the cliff. "Derived, never stored" and "the log is the canonical
+record" were never only elegance; they are the precondition for the
+coaching the grievance asked for.
+
+And the destination's first rung is not a north star but a fold and a
+diff: the clear-blunder annotator pointed at the student's *own* games —
+replay the log through a W-estimator, find the spikes against them,
+surface them ("move 19, winning to lost"). No case base, no learned
+eval, no council for rung one. Just where you went wrong. The 1980s
+wish, answered, is the same `annotate(game) -> Vec<(ply, delta_w)>`
+that was already the next brick.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
