@@ -816,7 +816,51 @@ over what exists. The missing piece is **multi-game PGN import** — today
 only the first game of a file is read; a repertoire chews a whole
 database. That same brick is what the dictionary builder and the
 corpus-annotator also need, which makes it the highest-leverage next
-step.
+step. (The corpus exists and is free: master databases — Caissabase
+~4.3M, TWIC, PGN Mentor — for the classics; the lichess open database,
+billions of games of every strength, for the bad-games foundation and
+the opponent model.)
+
+#### Phase, and knocking the opponent off-balance (Rob)
+
+Two refinements to reading games. First, **analysis by phase.** Games
+between strong players are often dull through the opening — both just
+setting up — so aggregate analysis washes out where it was decided.
+Phase is a cheap derived projection, `phase(position)` from material:
+opening (full board), middlegame (developed, queens on), endgame (few
+pieces). Bucket the shift series and the variance by phase and the
+"boring opening" becomes a measurement — low variance early (setup),
+the spike in the middlegame (the decision), conversion in the endgame.
+And the loop it closes: the **opening phase is the shared-prefix region
+of the study tree** — "analyze by phase" and "the repertoire is the
+dense prefix" are the same cut, and phase gates the memorize → compute
+→ generalize handoff (book the opening, search the middlegame, tablebase
+the endgame).
+
+Second, **knocking the opponent off-balance** — Fischer/Spassky's
+lesson, and the offensive dual of the coach. The coach shrinks *your*
+W − Ŵ gap; destabilization *manufactures the opponent's*. Same
+quantity, opposite direction. Crisp definition: **drive the opponent
+off the manifold of positions they know** — out of book, into the
+low-density tail where their prep fails and their gap opens. It is
+multi-signal, and every signal already exists:
+
+- **think-time spikes** — the `Timeline` data no other tool uses: the
+  destabilizing move is the one after which they burn the clock;
+- **subsequent fumbles** — the shift series: the move *before* a cluster
+  of opponent errors is the one that knocked them over;
+- **shrinking options** — `forced`/`legal_actions` count: driving them
+  into few-reply, only-move positions;
+- **density drop** — the dictionary's game-counts: taking *them* into
+  rarely-played territory while *you* stay in prep;
+- **variance injection** — rollout spread (the Tal axis): sharpening
+  where they are likelier to misstep.
+
+"Who did it best in Kasparov's games, and what happened" is then a
+ranking by a destabilization score combining those signals, correlated
+with results — he would score enormously, deep prep to drag opponents
+off-book being his signature. Destabilization is the missing *offensive*
+complement to the coach: the same gap, weaponized.
 
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
