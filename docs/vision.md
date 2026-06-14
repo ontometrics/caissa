@@ -458,6 +458,36 @@ a cache:
   it. Store the visited, learn the rest, and let FEN (v0.7) be the
   permanent key.
 
+**Memorize, compute, generalize (Rob).** The laziest engine is "play
+the most common move for this position" — a frequency table keyed by
+the board. That is not the LLM answer; it is the *pre*-LLM answer, the
+n-gram model, and it fails for the reason it always fails: too many
+positions. Legal chess is ~10⁴⁴ states, so the table is unrealizable;
+it works only on the Zipf sliver games actually visit (which is exactly
+why opening books work — and stop working the moment you are "out of
+book," staring at a position no table ever saw). The tail is unbounded;
+the table is finite. So a position has three kinds of answer, and they
+are the three regimes wearing player-hats:
+
+- **memorize** — a book; answers only the visited sliver (the dictionary
+  keyed by `Eq`, every position an island);
+- **compute** — search; answers any position by working it out from the
+  rules, no memory needed (`Minimax`/negamax never saw the hanging
+  queen, it derived the capture);
+- **generalize** — a learned evaluator; answers a novel position by
+  interpolating from feature-similar ones it did see.
+
+"Too many positions" is the wall that forces the handoff from the first
+to the other two. And the bridge is, once again, the key family:
+keyed by `Eq` the dictionary is the unrealizable island-table; keyed by
+a *coarser* key (the pawn skeleton) it is both realizable and
+generalizing — positions sharing a skeleton share an entry, so a novel
+one inherits what its lookalikes learned. *Coarsening the key is lossy
+compression is generalization* — the dial we built for repetition is
+also the dial between memorizing and learning. A real engine stitches
+all three by phase: book in the opening, search in the middlegame,
+tablebase in the endgame.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
