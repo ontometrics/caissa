@@ -684,6 +684,58 @@ Point it at a classic and watch. The CBR case layer is the north star
 (it needs the position-type keys); the annotator's skeleton is a real
 next brick.
 
+#### Bad games teach the boundary (Rob)
+
+Common knowledge says random, non-thinking games played to a result are
+useless data — real players know not to play garbage, so garbage cannot
+teach. That dismissal is the common-knowledge pit itself (Peirce's *a
+priori* method: belief fixed by what is agreeable to reason rather than
+tested). Tested, it is backwards: bad examples are essential, and
+learning what *not* to do is the first stage. (The author of this
+document made exactly this error building the v0.9 random player —
+called the corpus "weak" — which is why the principle is recorded here.)
+
+The rigorous core: **learning is locating a boundary, and a boundary
+needs points on both sides.** A value function's job is to find the
+cliff edge of W where winning becomes losing. Expert games *hug the
+good side* — two strong players never walk off the cliff, so they never
+show where it is; train only on them and the boundary is
+underdetermined. Bad games map the cliff by falling off it everywhere.
+You cannot learn "do not hang the queen" from games where no queen
+hangs.
+
+Three reinforcements, each a thread already here:
+
+- **Coverage** — the Zipf sliver inverted. Expert play concentrates on
+  the well-trodden manifold and leaves the catastrophic regions
+  unsampled; those are the regions a learner most needs. Random play
+  splatters across the whole space, densely sampling the disasters.
+  (AlphaZero starts random for exactly this — it learns the basics by
+  watching queens hang and lose.)
+- **Counterfactual / ablation** — Thorp, for free. Expert play
+  suppresses the counterfactual (the master always defends, so you
+  cannot tell whether defending mattered); random play runs the
+  ablation, not defending and recording the result — a natural
+  experiment, the road not taken tried a million times.
+- **Outcome spectrum** — W needs crushing losses, not just the
+  draws-and-small-edges experts over-represent; random play supplies
+  the full distribution to calibrate against.
+
+The nuance that completes it: a **curriculum, not a replacement.** Bad
+examples teach the coarse structure first (the cliffs, what-not-to-do);
+strong play teaches the fine structure later (technique, deep plans a
+random walk never reaches). Both have coverage gaps — random rarely
+reaches a subtle middlegame, experts never reach catastrophe — so they
+are complementary, and the natural order is bad-first. That is not a
+concession to the common-knowledge view; it is why that view is wrong
+about *first*.
+
+Build payoff: the v0.9 random corpus is the foundation layer, not a
+placeholder. Folding it into the dictionary calibrates W in the
+catastrophic regions where the boundary lives; the annotator pointed at
+random games is a fumble generator — bad moves with labeled
+consequences, the raw material for the case base of what-not-to-do.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
