@@ -862,6 +862,36 @@ with results — he would score enormously, deep prep to drag opponents
 off-book being his signature. Destabilization is the missing *offensive*
 complement to the coach: the same gap, weaponized.
 
+#### Recursive interpreters: caissa as the decomposition (Rob, RLMs)
+
+Considered: Recursive Language Models (Zhang, Kraska, Khattab) — treat a
+too-long prompt as an environment the model examines, decomposes, and
+recursively calls itself over, recursion as inference-time scaling. Does
+the crate want a strategy like it? Two answers.
+
+In the engine, there is nothing to adopt: strip RLM of its LLM
+specifics and it is structural recursion — divide and conquer with one
+engine at every level, recursion as the scaling knob — which is already
+what search *is* (negamax recurses over the game tree it cannot hold;
+MCTS over rollouts) and what the crate's whole idiom *is* (folds, the
+study tree, the counterfactual tree, the two interpreters). The paper
+validates the design; it does not change it. And the literal technique
+is an LLM-inference method, which belongs to the learning *sibling*, not
+the dependency-free core.
+
+But it answers the recurring wish for "an interpreter that reads *all*
+the games." A whole career, or a deep tree, is a long-context problem in
+exactly RLM's sense, and the payoff is that **caissa supplies the
+decomposition.** A chess model should not recurse over blind
+token-windows; it should recurse over the structures the crate already
+exposes — the repertoire tree's branches, the phase segmentation, the
+key-family clusters, the annotator's fumble-cases — into an era, then a
+response branch, then a game; summarize each, combine. caissa is the
+scaffolding a recursive interpreter climbs. The lesson is not a
+technique to import but a confirmation: the structural recursion already
+here is the substrate such a model would need, and exposing good
+decompositions is the encoding-lab's job.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
