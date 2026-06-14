@@ -123,7 +123,8 @@ The project's vocabulary and direction live in
 sharing, the interpreter, derived-never-stored, domain equivalence) and
 the open horizons: playing, learning, and game encodings that might make
 learning more powerful. Per-feature decision records sit beside it in
-[docs/](docs/).
+[docs/](docs/), and the works it draws on are collected in
+[docs/references.md](docs/references.md).
 
 ## Status
 

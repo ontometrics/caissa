@@ -5,7 +5,9 @@ pure transitions, a game is a fold. It is rules-complete as of v0.6.0.
 This document is the decision record above the code — the load-bearing
 vocabulary, and the big questions that decide where the project goes
 next. The plan docs beside it (`san-pgn-plan.md`, `draw-rules-plan.md`)
-record per-feature decisions; this one records the project's.
+record per-feature decisions; this one records the project's. The works
+it draws on — papers and conceptual touchstones — are in
+[references.md](references.md).
 
 ## Vocabulary
 
