@@ -147,6 +147,7 @@ learning more powerful. Per-feature decision records sit beside it in
 - [x] Full PGN export with tag pairs — the Result negotiated between board and tag, export∘import round-trips — `v0.7.0`
 - [x] Variations — the `study` module: graft lines, prefix sharing as construction, read back as lines — `v0.8.0`
 - [x] Self-play — the `play` module: headless `between`, seeded `Random` player, games are reproducible values — `v0.9.0`
+- [x] Multi-game PGN import — `pgn::games` / `pgn::import_all`, the corpus loader for dictionary, annotator, and repertoire — `v0.11.0`
 - [ ] PGN variation `(...)` import/export
 - [x] A thinking player — `Minimax` negamax over a `material` evaluator; depth substitutes for accuracy — `v0.10.0`
 - [ ] MCTS and a stronger evaluator (mobility, structure); the engine fast path it will need

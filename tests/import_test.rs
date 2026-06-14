@@ -163,3 +163,46 @@ mod rejections {
         );
     }
 }
+
+/// A database is many games concatenated; reading one is reading them all.
+/// This is the brick the dictionary, the corpus-annotator, and the
+/// repertoire are built on.
+mod databases {
+    use super::*;
+
+    fn two_classics() -> String {
+        format!("{OPERA_GAME_PGN}\n{IMMORTAL_GAME_PGN}")
+    }
+
+    #[test]
+    fn games_splits_a_database_into_its_games() {
+        assert_that!(pgn::games(&two_classics()).len(), eq(2));
+    }
+
+    #[test]
+    fn import_all_reads_every_game() {
+        let games = pgn::import_all(&two_classics()).unwrap();
+
+        assert_that!(games.len(), eq(2));
+        assert_that!(games[0].plies(), eq(33)); // the Opera Game
+        assert_that!(games[1].plies(), eq(45)); // the Immortal Game
+    }
+
+    #[test]
+    fn import_all_is_strict_one_bad_game_fails_the_batch() {
+        let database = format!("{OPERA_GAME_PGN}\n\n[Event \"bad\"]\n\n1. e4 zz9");
+
+        assert_that!(pgn::import_all(&database), err(anything()));
+    }
+
+    #[test]
+    fn games_then_import_is_the_lenient_path() {
+        let database = format!("{OPERA_GAME_PGN}\n\n[Event \"bad\"]\n\n1. e4 zz9");
+
+        let results: Vec<_> = pgn::games(&database).into_iter().map(pgn::import).collect();
+
+        assert_that!(results.len(), eq(2));
+        assert_that!(results[0].is_ok(), eq(true));
+        assert_that!(results[1].is_ok(), eq(false));
+    }
+}

@@ -67,8 +67,9 @@ pub fn parse(text: &str) -> Result<Pgn, Rejected> {
 /// [`Game::apply`]. A result marker that contradicts what the board says
 /// (a checkmate for the other side, say) is rejected; markers the board
 /// cannot verify — resignations, agreed draws, flag falls — are accepted
-/// as written. Of a multi-game file, only the first game is read:
-/// parsing stops at the first result marker.
+/// as written. Of a multi-game file, only the first game is read
+/// (parsing stops at the first result marker); use [`import_all`] or
+/// [`games`] for a whole database.
 pub fn import(text: &str) -> Result<Game, Rejected> {
     let pgn = parse(text)?;
     let game = pgn
@@ -91,6 +92,47 @@ pub fn import(text: &str) -> Result<Game, Rejected> {
         }
     }
     Ok(game)
+}
+
+/// Split a PGN database into its games — contiguous slices, no copying.
+/// A new game begins at a tag line that follows movetext, the standard
+/// boundary (every database game carries its seven-tag roster). Pair it
+/// with [`import`] for the lenient path over a corpus —
+/// `games(db).into_iter().map(import)` keeps each game's result as data,
+/// so one bad game does not sink the rest.
+pub fn games(text: &str) -> Vec<&str> {
+    let mut starts = vec![0];
+    let mut seen_moves = false;
+    let mut offset = 0;
+    for line in text.split_inclusive('\n') {
+        let trimmed = line.trim();
+        let is_tag = trimmed.starts_with('[');
+        if is_tag && seen_moves {
+            starts.push(offset); // a tag after movetext starts the next game
+            seen_moves = false;
+        } else if !is_tag && !trimmed.is_empty() {
+            seen_moves = true;
+        }
+        offset += line.len();
+    }
+    starts
+        .iter()
+        .enumerate()
+        .filter_map(|(i, &start)| {
+            let end = starts.get(i + 1).copied().unwrap_or(text.len());
+            let chunk = text[start..end].trim();
+            (!chunk.is_empty()).then_some(chunk)
+        })
+        .collect()
+}
+
+/// Import every game in a database — the corpus loader the dictionary,
+/// the annotator, and the repertoire all want. Strict: the first
+/// unparseable game fails the batch (the `Rejected` says which). For
+/// lenient loading, map [`import`] over [`games`] and keep the per-game
+/// `Result`s.
+pub fn import_all(text: &str) -> Result<Vec<Game>, Rejected> {
+    games(text).into_iter().map(import).collect()
 }
 
 /// Export a game as PGN: tag pairs (seven-tag-roster order first, the
