@@ -151,6 +151,26 @@ per move (fine for humans, ruinous at engine depth). The long-reserved
 worth building exactly when search arrives, as a basement under the
 same API, never as the front door.
 
+**Self-play is headless by nature (Rob).** A bot is a pure function of
+state — it reacts to the position, needing no view — so the simulator
+is just a loop: ask the side to move for an action, fold it, repeat
+until `mode()` is `Played`, and out comes a `Game`. No rendering, no
+I/O. This is not only tidy, it is *required*: the corpus flywheel that
+feeds learning, the dictionary, and the encoding lab wants millions of
+games, and a rendering loop would be a thousand times too slow
+(AlphaZero never watches its own games either). Headlessness is the
+price of the data ambitions, paid for free because the model never knew
+a view existed. The Markov property licenses it: the position is
+sufficient to choose a move, so a bot needs the *state*, never the
+*screen*. The view is a separate, optional consumer — feed the produced
+`Game` to `Timeline` and replay it with think-times only if a human is
+watching; rendering is the one effect at the edge, the `sleep` between
+frames, which is exactly why `Display` and the rules have always lived
+in different files. (A *complete* bot takes the `Game`, not just the
+`Position`, since the non-Markov rules — repetition, the fifty-move
+clock, draw claims — need the sliver of history `Game` carries; a
+simple bot reads only `.position()`. Either way, no view.)
+
 ### 2. Can it learn?
 
 The crate's role in learning is *environment, referee, and data* — not
