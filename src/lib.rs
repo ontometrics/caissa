@@ -61,8 +61,11 @@
 //! seventy-five-move arrive by themselves, threefold and fifty-move are
 //! claimed ([`Game::claim_draw`]), like flags.
 //!
+//! Variations live in [`study`] — a study is a tree of lines sharing
+//! prefixes, the first namespaced subsystem while the core stays flat.
+//!
 //! Not yet implemented:
-//! - variations
+//! - PGN variation `(...)` import/export
 //! - the engine fast path (ungated movegen for search workloads)
 
 mod action;
@@ -77,6 +80,7 @@ mod position;
 mod reduce;
 mod san;
 mod square;
+pub mod study;
 mod timeline;
 
 pub use action::{Action, IntoAction};

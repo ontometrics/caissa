@@ -145,7 +145,8 @@ learning more powerful. Per-feature decision records sit beside it in
 - [x] Draw rules — insufficient material on the board; repetition and move-counts derived from the history; threefold/fifty claimed (`claim_draw`), fivefold/seventy-five automatic — `v0.6.0`
 - [x] FEN import/export — counters derived from the log, never stored — `v0.7.0`
 - [x] Full PGN export with tag pairs — the Result negotiated between board and tag, export∘import round-trips — `v0.7.0`
-- [ ] Variations — parsed and represented, not just rejected
+- [x] Variations — the `study` module: graft lines, prefix sharing as construction, read back as lines — `v0.8.0`
+- [ ] PGN variation `(...)` import/export
 - [ ] Engine fast path: ungated movegen for search workloads
 
 ## License
