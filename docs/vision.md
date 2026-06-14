@@ -575,6 +575,66 @@ star with the others. But it sharpens the nearer work with a directive:
 do not only encode positions, encode attack-forms, because that is
 where the dimensionality collapses and learning gets cheap.
 
+#### Mobilization, variance, and the fallible opponent (Rob)
+
+A board can be quantized by how much *force each side has mobilized* —
+developed, committed, pointed at the fight. And mobilization is
+double-edged: pull the queen out early and you may land a quick win or
+suffer unrecoverable tragedy if the attack is refuted. Rommel: have a
+plan, but the battlefield is mistakes and surprises, and the winner is
+the one who capitalizes better.
+
+This adds the axis the rest of the document was missing. Everything so
+far has measured **W, the expected value**. Mobilization and Rommel are
+about the **second moment, variance**. Two positions can share a W and
+differ utterly in character — a quiet position (low variance, hard to
+lose or to win big) versus a sharp over-mobilized one (the same W, but
++mate or −resign depending on whether the attack lands). W cannot tell
+them apart; mobilization is a *variance driver*.
+
+And Rommel indicts plain minimax, which assumes the opponent plays best
+— the game-theoretic optimum. A real opponent *errs*, and the winner
+capitalizes: **optimal versus exploitative play**, the oldest dichotomy
+in game AI. The two axes are the two champions — Petrosian minimized
+his *own* error probability (prophylaxis, low variance), Tal maximized
+his *opponent's* (sacrifice, chaos, high variance) — same
+W-maximization, opposite variance strategies, both winning against
+different opponents.
+
+The connection that redeems the lazy lookup table: the "most common
+move for this position" frequency table, useless as a *player* (too
+many positions), is exactly the *opponent model* — "what will this
+opponent likely do here." Exploitative play is W (what is best) blended
+with opponent-prediction (what they will actually do). The table's true
+job was never to move; it was to model the enemy. Rommel needs it.
+
+The clean result: **optimal risk appetite is a function of W.** Behind
+(W < ½) you should *seek* variance — the sharp, mobilized position is
+your path to the tail; ahead (W > ½) you should *kill* it — simplify,
+trade, demobilize. That one rule yields all the folk wisdom: complicate
+when losing, simplify when winning, swindle from lost positions.
+Kelly-flavored — bet bigger when you need the variance — with the one
+caveat that *is* the "unrecoverable tragedy": variance is not ruin. A
+hung queen is an **absorbing barrier**; you cannot un-lose. So
+mobilization that widens the distribution is one thing, over-extension
+that courts ruin another, and you accept ruin-risk only when already
+lost. That is why "queen out early" is punished — it reaches for the
+absorbing barrier before earning the right to gamble.
+
+Caissa hooks: mobilization is a cheap feature (committed force per
+side), the *fuel* to attack-form's *shape*, entering the eval as a
+variance term conditioned on coordination (mobilized-but-uncoordinated
+is the tragedy). Variance is computable from the very rollouts that
+give W — take the spread, not just the mean (sharpness *is* rollout
+variance; we were halfway there with "inevitability = the fraction of
+playouts the loser saves"). And the council gains a risk dial gated by
+W: a mobilizing (Tal) expert up-weighted when behind, a simplifying
+(Petrosian) expert when ahead. The coach completes here too — it does
+not only shrink the student's W − Ŵ gap, it teaches risk management:
+when to complicate, when to simplify. Defining "mobilization" precisely
+and modeling the opponent are research, north stars with the rest; but
+variance is the axis that makes the value model honest.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
