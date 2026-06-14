@@ -488,6 +488,48 @@ also the dial between memorizing and learning. A real engine stitches
 all three by phase: book in the opening, search in the middlegame,
 tablebase in the endgame.
 
+**The council: blend the strategies, shift the weights (Rob).** Better
+than stitching by phase is a weighted *blend* whose weights track which
+expert is competent right now — the modern architecture: AlphaZero
+blends a learned policy with search (the policy weights which branches
+search explores; search corrects the policy), Stockfish blends search
+with a learned eval. Three things make it cohere here:
+
+- **It is composition.** Each strategy is a `Player`; an ensemble that
+  weights several is *itself* a `Player`, closed under the same
+  interface — a council of councils is a council. Free, once the
+  members exist.
+- **Blending needs opinions, not verdicts.** You cannot average two
+  argmaxes. To weight strategies each must report *scored moves* — a
+  value per move — not one chosen action, so the ensemble refines the
+  interface (`assess(&Game) -> Vec<(Action, Score)>`, with `choose` the
+  argmax of the weighted sum). Same shape as errors-as-data and
+  `AmbiguousSan` returning candidates: expose the options, let the
+  combiner decide.
+- **W is the common currency.** Experts speak different languages — a
+  book gives move frequencies, search centipawns, a learned eval
+  win-probability — and cannot be averaged until they share units. W is
+  the universal one: centipawns → W by a sigmoid, book frequencies → W
+  by the outcomes the dictionary already tallies, a learned eval → W
+  directly. The dictionary's W tally *is* the book-expert's output in
+  the common currency. Everything reduces to estimates of the one
+  number.
+
+The weights should track *competence on this position*, not just phase
+— a book move when the line is well-trodden, search when the position
+is sharp, a learned eval when it is feature-similar to its training.
+That confidence-gating is a feedback controller: the system carries a
+model of its own components' reliability and shifts toward whichever is
+right (Wiener again, the coach turned inward), and the gating is itself
+learnable, keyed by the same features that drive generalization.
+
+Sequencing: a north star, not the next build — extract, don't
+anticipate. An ensemble of one real expert (today, search) frames
+nothing. The council earns its keep once the members are genuinely
+complementary, so the order is dictionary (the book) → a learned eval →
+*then* the council that blends them. Build the experts first; the
+weighting is the last, easy layer.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
