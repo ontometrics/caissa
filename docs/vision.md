@@ -773,6 +773,51 @@ eval, no council for rung one. Just where you went wrong. The 1980s
 wish, answered, is the same `annotate(game) -> Vec<(ply, delta_w)>`
 that was already the next brick.
 
+#### The repertoire: prepared responses to circumstance (Rob, Epictetus)
+
+Kasparov played the English for twenty years. Two questions: reduce all
+those games to a codified set of branches, and describe how the
+repertoire *evolved*.
+
+The codification is the `Study` tree we already built. Fold every
+English game into one study — `games.fold(Study::new(), Study::with)` —
+and prefix sharing does the work: thousands of games collapse into a
+tree because they share opening prefixes. The branches *are* the
+repertoire. The refinement that makes it a repertoire and not a
+hairball: count games per node and prune by frequency, keeping the
+well-trodden prep and dropping the one-off tails — the Zipf sliver made
+explicit as a tree. Annotate each surviving node with its W (how he
+scored from there) and it is an opening book with outcomes.
+
+Epictetus gives the tree its shape. A repertoire is a **control policy
+under adversarial branching**: the dichotomy of control maps exactly —
+your moves are the controllable (the prep), the opponent's the
+circumstance you are handed. So the tree is *asymmetric* — narrow at
+your nodes (you chose one prepared line), wide at the opponent's (you
+must be ready for each thing they might do). It is an AND-OR tree, your
+OR-nodes collapsed to your choice, the opponent's AND-nodes kept wide.
+"You know where you want to get" is the goal — a target structure, a
+pawn skeleton, an attack-form (the keys) — and the branches are the
+paths to it through circumstances you cannot control. A repertoire is a
+steering policy toward a target structure under uncertainty.
+
+The evolution is the bitemporal layer (the `lettura`/Snodgrass
+pattern). Each game carries a Date tag, so annotate each branch with
+*when it was live* — a valid-time interval, what `Timeline` already
+models. The evolution is the changing *shape* of the tree over time:
+branches that appeared and faded, the mainline switched in some year,
+the line that shows up only late. The interpreter that "describes the
+evolution" reads the diffs between time-slices and narrates them — the
+dictionary made bitemporal, over one player's opening.
+
+Buildable with one new ingredient. The repertoire is `Study` +
+per-node counts + a frequency prune + date/W annotations, all folds
+over what exists. The missing piece is **multi-game PGN import** — today
+only the first game of a file is read; a repertoire chews a whole
+database. That same brick is what the dictionary builder and the
+corpus-annotator also need, which makes it the highest-leverage next
+step.
+
 **No maze: the position is the Markov state.** The objection to check
 (Rob): many roads reach the same board, and forward probabilities must
 not depend on the road. By construction they don't — the dictionary
