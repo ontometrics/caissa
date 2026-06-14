@@ -121,6 +121,16 @@ impl<E: Fn(Position) -> i32> Player for Minimax<E> {
 /// which is what makes the engine actually deliver it.
 const MATE: i32 = 1_000_000;
 
+/// The negamax value of a position to the side to move, searching `depth`
+/// plies with `eval` at the leaves — the position-scoring companion to
+/// [`Minimax`] (which chooses) and [`material`] (the leaf eval). Use it to
+/// give an annotator or estimator tactical sight: `evaluate(p, 2,
+/// &material)` sees two plies of captures and mates that static material
+/// misses.
+pub fn evaluate(position: Position, depth: u32, eval: &impl Fn(Position) -> i32) -> i32 {
+    negamax(position, depth, 0, eval)
+}
+
 /// The value of `position` to the side to move, looking `depth` plies
 /// ahead. `mode()` is checked first, so a terminal position is scored
 /// exactly even at the horizon — the leaf evaluator that never lies.

@@ -64,7 +64,9 @@
 //! Variations live in [`study`] — a study is a tree of lines sharing
 //! prefixes, the first namespaced subsystem while the core stays flat.
 //! Self-play lives in [`play`] — headless bots are pure functions of
-//! state, producing games as reproducible values.
+//! state, producing games as reproducible values. Reading games back
+//! lives in [`review`] — the annotator folds a game through an evaluator
+//! to find where it turned.
 //!
 //! Not yet implemented:
 //! - PGN variation `(...)` import/export
@@ -81,6 +83,7 @@ pub mod pgn;
 pub mod play;
 mod position;
 mod reduce;
+pub mod review;
 mod san;
 mod square;
 pub mod study;
