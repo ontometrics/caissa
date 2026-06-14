@@ -148,7 +148,8 @@ learning more powerful. Per-feature decision records sit beside it in
 - [x] Variations — the `study` module: graft lines, prefix sharing as construction, read back as lines — `v0.8.0`
 - [x] Self-play — the `play` module: headless `between`, seeded `Random` player, games are reproducible values — `v0.9.0`
 - [ ] PGN variation `(...)` import/export
-- [ ] A thinking player (material/mobility minimax, then MCTS)
+- [x] A thinking player — `Minimax` negamax over a `material` evaluator; depth substitutes for accuracy — `v0.10.0`
+- [ ] MCTS and a stronger evaluator (mobility, structure); the engine fast path it will need
 - [ ] Engine fast path: ungated movegen for search workloads
 
 ## License
