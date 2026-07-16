@@ -1,8 +1,14 @@
-//! PGN variations, read at last: the lexer emits parens as structure,
-//! and the parser's one recursion turns nested `(...)` into a Study.
+//! PGN variations, read and written: the lexer emits parens as
+//! structure, the parser's one recursion turns nested `(...)` into a
+//! Study, and the writer's one recursion — the parser's inverse —
+//! turns the Study back into `(...)`.
 
-use caissa::pgn::import_study;
+use std::collections::BTreeMap;
+
+use caissa::classics::fools_mate;
 use caissa::notation::*;
+use caissa::pgn::{export_study, import_study};
+use caissa::study::Study;
 use caissa::{Game, Piece, Rejected, Role, import};
 use googletest::prelude::*;
 
@@ -19,7 +25,10 @@ mod reading_variations {
         assert_that!(lines.len(), eq(2));
         assert_that!(lines[0].plies(), eq(3)); // e4 e5 Nf3 — the mainline
         assert_that!(lines[1].plies(), eq(2)); // e4 c5 — the Sicilian aside
-        assert_that!(lines[1].position().at(c5), some(eq(Piece::black(Role::Pawn))));
+        assert_that!(
+            lines[1].position().at(c5),
+            some(eq(Piece::black(Role::Pawn)))
+        );
     }
 
     #[test]
@@ -39,8 +48,14 @@ mod reading_variations {
         let lines: Vec<Game> = study.lines().collect();
 
         assert_that!(lines.len(), eq(3));
-        assert_that!(lines[1].position().at(c5), some(eq(Piece::black(Role::Pawn))));
-        assert_that!(lines[2].position().at(e6), some(eq(Piece::black(Role::Pawn))));
+        assert_that!(
+            lines[1].position().at(c5),
+            some(eq(Piece::black(Role::Pawn)))
+        );
+        assert_that!(
+            lines[2].position().at(e6),
+            some(eq(Piece::black(Role::Pawn)))
+        );
     }
 
     #[test]
@@ -54,8 +69,14 @@ mod reading_variations {
         assert_that!(lines[1].plies(), eq(4)); // e4 c5 Nf3 d6
         assert_that!(lines[2].plies(), eq(3)); // e4 c5 c3
         // The sub-variation shares the Sicilian prefix, not the mainline's.
-        assert_that!(lines[2].position().at(c3), some(eq(Piece::white(Role::Pawn))));
-        assert_that!(lines[2].position().at(c5), some(eq(Piece::black(Role::Pawn))));
+        assert_that!(
+            lines[2].position().at(c3),
+            some(eq(Piece::white(Role::Pawn)))
+        );
+        assert_that!(
+            lines[2].position().at(c5),
+            some(eq(Piece::black(Role::Pawn)))
+        );
     }
 
     #[test]
@@ -69,6 +90,90 @@ mod reading_variations {
             )))
         );
         assert_that!(import_study(text).unwrap().lines().count(), eq(2));
+    }
+}
+
+/// A study writes itself back: the mainline with each variation in
+/// parentheses where it occurs, Black's move restated as `N...` after
+/// an interruption — and re-importing the score reproduces the study.
+mod writing_variations {
+    use super::*;
+
+    #[test]
+    fn a_study_scores_its_tree() {
+        let study = import_study("1. e4 e5 (1... c5 2. Nf3 (2. c3) d6) *").unwrap();
+
+        assert_that!(
+            study.score().as_str(),
+            eq("1. e4 e5 (1... c5 2. Nf3 (2. c3) 2... d6) *")
+        );
+    }
+
+    #[test]
+    fn consecutive_variations_stay_siblings() {
+        let study = import_study("1. e4 e5 (1... c5) (1... e6) 2. Nf3 *").unwrap();
+
+        assert_that!(
+            study.score().as_str(),
+            eq("1. e4 e5 (1... c5) (1... e6) 2. Nf3 *")
+        );
+    }
+
+    #[test]
+    fn a_single_line_study_scores_exactly_as_its_game() {
+        let game = fools_mate();
+
+        let study = Study::from(game.clone());
+
+        assert_that!(study.score().as_str(), eq(game.score().as_str()));
+    }
+
+    #[test]
+    fn importing_a_score_reproduces_the_study() {
+        let study =
+            import_study("1. e4 e5 (1... c5 2. Nf3 (2. c3) d6) (1... e6) 2. Nf3 *").unwrap();
+
+        let reimported = import_study(&study.score()).unwrap();
+
+        assert_that!(&reimported, eq(&study));
+    }
+
+    #[test]
+    fn display_is_the_score() {
+        let study = import_study("1. e4 e5 (1... c5) *").unwrap();
+
+        assert_that!(format!("{study}").as_str(), eq(study.score().as_str()));
+    }
+}
+
+/// export_study is to import_study what export is to import: the same
+/// tag section, the movetext now carrying its variations, the Result
+/// negotiated against the mainline's board.
+mod exporting_studies {
+    use super::*;
+
+    #[test]
+    fn export_study_writes_tags_and_variations() {
+        let study = import_study("1. e4 e5 (1... c5) 2. Nf3 *").unwrap();
+        let tags = BTreeMap::from([("Event".to_string(), "Repertoire".to_string())]);
+
+        let pgn = export_study(&study, &tags).unwrap();
+
+        assert_that!(pgn.contains("[Event \"Repertoire\"]"), eq(true));
+        assert_that!(pgn.contains("[Result \"*\"]"), eq(true));
+        assert_that!(pgn.contains("1. e4 e5 (1... c5) 2. Nf3 *"), eq(true));
+        assert_that!(&import_study(&pgn).unwrap(), eq(&study));
+    }
+
+    #[test]
+    fn the_result_is_negotiated_against_the_mainline() {
+        // The mainline is Fool's Mate — the board attests 0-1, so a
+        // declared 1-0 is rejected, exactly as export rejects it.
+        let study = import_study("1. f3 e5 (1... e6) 2. g4 Qh4# 0-1").unwrap();
+        let contradicting = BTreeMap::from([("Result".to_string(), "1-0".to_string())]);
+
+        assert_that!(export_study(&study, &BTreeMap::new()).is_ok(), eq(true));
+        assert_that!(export_study(&study, &contradicting).is_err(), eq(true));
     }
 }
 

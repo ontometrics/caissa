@@ -9,26 +9,49 @@ use crate::square::Square;
 #[derive(Clone, PartialEq, Eq, Debug)]
 pub enum Rejected {
     Unparseable(String),
-    EmptySquare { from: Square },
-    NotYourTurn { piece: Piece },
-    OwnPieceAt { to: Square },
-    CannotReach { from: Square, to: Square },
+    EmptySquare {
+        from: Square,
+    },
+    NotYourTurn {
+        piece: Piece,
+    },
+    OwnPieceAt {
+        to: Square,
+    },
+    CannotReach {
+        from: Square,
+        to: Square,
+    },
     /// A pawn reached the last rank via `Action::Move`; resend as
     /// `Action::Promote` saying what it becomes.
-    NeedsPromotion { from: Square, to: Square },
+    NeedsPromotion {
+        from: Square,
+        to: Square,
+    },
     /// `Action::Promote` for a move that is not a pawn reaching the last rank.
-    NotAPromotion { from: Square, to: Square },
+    NotAPromotion {
+        from: Square,
+        to: Square,
+    },
     /// Pawns promote to queen, rook, bishop, or knight — nothing else.
-    InvalidPromotion { into: Role },
+    InvalidPromotion {
+        into: Role,
+    },
     /// The move would leave the mover's own king attacked — covers moving
     /// into check, moving a pinned piece, failing to resolve check, and
     /// castling out of or through check.
-    IntoCheck { king: Square },
+    IntoCheck {
+        king: Square,
+    },
     /// The right to castle on this wing was forfeited — the king or that
     /// rook has moved. Rights never come back.
-    CastlingForfeited { wing: Wing },
+    CastlingForfeited {
+        wing: Wing,
+    },
     /// The game already ended; no action can follow [`Terminus`](crate::Terminus).
-    GameOver { ending: Ending },
+    GameOver {
+        ending: Ending,
+    },
     /// A [`Timeline`](crate::Timeline) record stamped earlier than the
     /// previous one — time only moves forward.
     OutOfOrder,
@@ -41,9 +64,13 @@ pub enum Rejected {
     /// fewer than fifty quiet moves.
     NoDrawToClaim,
     /// A SAN that no legal action matches.
-    NoMatch { san: San },
+    NoMatch {
+        san: San,
+    },
     /// A SAN that several legal actions satisfy — needs disambiguation.
-    AmbiguousSan { candidates: Vec<Action> },
+    AmbiguousSan {
+        candidates: Vec<Action>,
+    },
 }
 
 /// Whether a game is still being played, or has been.
@@ -56,6 +83,26 @@ pub enum Rejected {
 pub enum Mode {
     Playing,
     Played(Ending),
+}
+
+impl Mode {
+    /// The result marker the mode attests — `1-0`, `0-1`, `1/2-1/2` —
+    /// or `None` while the game is being played. The one address for
+    /// the table that scoring, PGN result verification, and export all
+    /// consult; endings the rules of movement cannot see (resignation,
+    /// agreement) never reach a `Mode`, so a written marker for those
+    /// is taken on trust.
+    pub fn result(self) -> Option<&'static str> {
+        match self {
+            Mode::Played(Ending::Checkmate { winner })
+            | Mode::Played(Ending::Flagged { winner }) => Some(match winner {
+                Color::White => "1-0",
+                Color::Black => "0-1",
+            }),
+            Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => Some("1/2-1/2"),
+            Mode::Playing => None,
+        }
+    }
 }
 
 /// How a played game ended. `Checkmate`, `Stalemate`, and the
@@ -112,7 +159,9 @@ pub fn mode(position: Position) -> Mode {
         return Mode::Playing;
     }
     if in_check(position, position.turn()) {
-        Mode::Played(Ending::Checkmate { winner: position.turn().opponent() })
+        Mode::Played(Ending::Checkmate {
+            winner: position.turn().opponent(),
+        })
     } else {
         Mode::Played(Ending::Stalemate)
     }
@@ -157,7 +206,13 @@ pub fn in_check(position: Position, color: Color) -> bool {
 /// The square of `color`'s king if it is currently attacked.
 fn threatened_king(position: Position, color: Color) -> Option<Square> {
     Square::all()
-        .find(|&square| position.at(square) == Some(Piece { color, role: Role::King }))
+        .find(|&square| {
+            position.at(square)
+                == Some(Piece {
+                    color,
+                    role: Role::King,
+                })
+        })
         .filter(|&king| attacked(position, king, color.opponent()))
 }
 
@@ -251,7 +306,10 @@ pub fn expand(position: Position, action: Action) -> Result<Vec<Edit>, Rejected>
     {
         return castle(position, piece.color, wing);
     }
-    if position.at(to).is_some_and(|target| target.color == piece.color) {
+    if position
+        .at(to)
+        .is_some_and(|target| target.color == piece.color)
+    {
         return Err(Rejected::OwnPieceAt { to });
     }
     if !reaches(position, piece, from, to) {
@@ -284,7 +342,13 @@ pub fn expand(position: Position, action: Action) -> Result<Vec<Edit>, Rejected>
         edits.push(Edit::Lift(passed));
     }
     edits.push(Edit::Lift(from));
-    edits.push(Edit::Place(to, Piece { color: piece.color, role }));
+    edits.push(Edit::Place(
+        to,
+        Piece {
+            color: piece.color,
+            role,
+        },
+    ));
     // A double push arms the en-passant window — and says so in the stream.
     if piece.role == Role::Pawn && from.rank().abs_diff(to.rank()) == 2 {
         let skipped = Square::new(from.file(), (from.rank() + to.rank()) / 2)
@@ -354,9 +418,16 @@ fn castle(position: Position, color: Color, wing: Wing) -> Result<Vec<Edit>, Rej
         Wing::King => &kingside_between,
         Wing::Queen => &queenside_between,
     };
-    let rook_present = position.at(rook_from) == Some(Piece { color, role: Role::Rook });
+    let rook_present = position.at(rook_from)
+        == Some(Piece {
+            color,
+            role: Role::Rook,
+        });
     if !rook_present || between.iter().any(|&square| position.at(square).is_some()) {
-        return Err(Rejected::CannotReach { from: king_from, to: king_to });
+        return Err(Rejected::CannotReach {
+            from: king_from,
+            to: king_to,
+        });
     }
     // The king may not castle out of, through, or into an attacked square.
     // The square he passes through is exactly where the rook lands, on
@@ -372,12 +443,31 @@ fn castle(position: Position, color: Color, wing: Wing) -> Result<Vec<Edit>, Rej
     Ok(vec![
         Edit::Lift(king_from),
         Edit::Lift(rook_from),
-        Edit::Place(king_to, Piece { color, role: Role::King }),
-        Edit::Place(rook_to, Piece { color, role: Role::Rook }),
+        Edit::Place(
+            king_to,
+            Piece {
+                color,
+                role: Role::King,
+            },
+        ),
+        Edit::Place(
+            rook_to,
+            Piece {
+                color,
+                role: Role::Rook,
+            },
+        ),
     ])
 }
 
-fn pawn_reaches(position: Position, color: Color, from: Square, to: Square, dx: i8, dy: i8) -> bool {
+fn pawn_reaches(
+    position: Position,
+    color: Color,
+    from: Square,
+    to: Square,
+    dx: i8,
+    dy: i8,
+) -> bool {
     let dir: i8 = match color {
         Color::White => 1,
         Color::Black => -1,

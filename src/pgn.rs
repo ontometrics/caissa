@@ -6,14 +6,14 @@
 //! end of line), move numbers, and NAGs (`$n`) are skipped. Variations
 //! (`(...)`) are rejected by the flat path — a `Game` is a line — and
 //! read by [`import_study`], which parses their nesting into a
-//! [`Study`]. The result marker, when present, is checked against what
-//! the board actually says.
+//! [`Study`]; [`export_study`] writes it back, the mirror. The result
+//! marker, when present, is checked against what the board actually
+//! says.
 
 use std::collections::BTreeMap;
 
 use crate::game::Game;
-use crate::piece::Color;
-use crate::reduce::{Ending, Mode, Rejected};
+use crate::reduce::{Mode, Rejected};
 use crate::study::Study;
 
 /// A parsed PGN: its tag pairs, the SAN tokens of the movetext, and the
@@ -211,18 +211,8 @@ fn sequence(
     Ok(lines)
 }
 
-/// What the board attests the result to be, when it can.
-fn board_result(mode: Mode) -> Option<&'static str> {
-    match mode {
-        Mode::Played(Ending::Checkmate { winner: Color::White }) => Some("1-0"),
-        Mode::Played(Ending::Checkmate { winner: Color::Black }) => Some("0-1"),
-        Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => Some("1/2-1/2"),
-        _ => None,
-    }
-}
-
 fn verify_result(mode: Mode, written: &str) -> Result<(), Rejected> {
-    if let Some(expected) = board_result(mode)
+    if let Some(expected) = mode.result()
         && written != expected
     {
         return Err(Rejected::Unparseable(format!(
@@ -280,7 +270,25 @@ pub fn import_all(text: &str) -> Result<Vec<Game>, Rejected> {
 /// (resignations, agreements); a declared result that contradicts the
 /// board is rejected, mirroring [`import`].
 pub fn export(game: &Game, tags: &BTreeMap<String, String>) -> Result<String, Rejected> {
-    let board_says = board_result(game.mode());
+    write_pgn(game.mode(), &game.score(), tags)
+}
+
+/// Export a study as PGN — the mirror of [`import_study`], as [`export`]
+/// is of [`import`]: the same tag section, the movetext now
+/// [`Study::score`] with its variations in `(...)`. The Result is
+/// negotiated against the *mainline's* board, exactly as a game's is
+/// against its own; `import_study(export_study(&study, …)?)` reproduces
+/// the study.
+pub fn export_study(study: &Study, tags: &BTreeMap<String, String>) -> Result<String, Rejected> {
+    write_pgn(study.mainline().mode(), &study.score(), tags)
+}
+
+/// The one writer behind [`export`] and [`export_study`]: negotiate the
+/// Result between what the board attests and what the tag declares,
+/// emit the tag section, then the movetext wearing the negotiated
+/// marker in place of the score's own.
+fn write_pgn(mode: Mode, score: &str, tags: &BTreeMap<String, String>) -> Result<String, Rejected> {
+    let board_says = mode.result();
     let declared = tags.get("Result").map(String::as_str);
     let result = match (board_says, declared) {
         (Some(board), Some(tag)) if board != tag => {
@@ -311,7 +319,6 @@ pub fn export(game: &Game, tags: &BTreeMap<String, String>) -> Result<String, Re
 
     // The score already ends with the board's marker; the movetext keeps
     // the moves and takes the negotiated result instead.
-    let score = game.score();
     let moves = score.rsplit_once(' ').map_or("", |(moves, _)| moves);
     for line in wrap(&format!("{moves} {result}"), 80) {
         out.push_str(&line);

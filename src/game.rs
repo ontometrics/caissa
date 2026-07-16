@@ -41,7 +41,12 @@ impl Game {
     }
 
     pub fn from_position(start: Position) -> Game {
-        Game { start, log: Vec::new(), history: vec![start], mode: mode(start) }
+        Game {
+            start,
+            log: Vec::new(),
+            history: vec![start],
+            mode: mode(start),
+        }
     }
 
     /// Pure: returns a new game, this one is untouched.
@@ -55,7 +60,12 @@ impl Game {
         let mut history = self.history.clone();
         log.push(action);
         history.push(next);
-        let mut game = Game { start: self.start, log, history, mode: mode(next) };
+        let mut game = Game {
+            start: self.start,
+            log,
+            history,
+            mode: mode(next),
+        };
         // The automatic draws live above the position: fivefold and
         // seventy-five-move are facts about the history, arriving by
         // themselves the way mate does.
@@ -96,7 +106,9 @@ impl Game {
                 let (from, to) = match action {
                     Action::Move { from, to } | Action::Promote { from, to, .. } => (from, to),
                 };
-                let pawn = before.at(from).is_some_and(|piece| piece.role == Role::Pawn);
+                let pawn = before
+                    .at(from)
+                    .is_some_and(|piece| piece.role == Role::Pawn);
                 !pawn && before.at(to).is_none()
             })
             .count()
@@ -141,7 +153,10 @@ impl Game {
         } else {
             return Err(Rejected::NoDrawToClaim);
         };
-        Ok(Game { mode: Mode::Played(Ending::Draw(reason)), ..self.clone() })
+        Ok(Game {
+            mode: Mode::Played(Ending::Draw(reason)),
+            ..self.clone()
+        })
     }
 
     /// Number of plies played. A *ply* is a half-move — one action by one
@@ -178,7 +193,8 @@ impl Game {
     /// clock derived from the log ([`Game::quiet_plies`]) and the
     /// fullmove number from the ply count — both history, neither stored.
     pub fn fen(&self) -> String {
-        self.position().fen_with(self.quiet_plies(), self.plies() / 2 + 1)
+        self.position()
+            .fen_with(self.quiet_plies(), self.plies() / 2 + 1)
     }
 
     /// The game as a publication would print it:
@@ -203,12 +219,7 @@ impl Game {
             out.push_str(&write(position, action).expect("the log holds only accepted actions"));
             out.push(' ');
         }
-        out.push_str(match self.mode {
-            Mode::Played(Ending::Checkmate { winner: Color::White }) => "1-0",
-            Mode::Played(Ending::Checkmate { winner: Color::Black }) => "0-1",
-            Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => "1/2-1/2",
-            _ => "*",
-        });
+        out.push_str(self.mode.result().unwrap_or("*"));
         out
     }
 

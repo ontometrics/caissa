@@ -69,7 +69,6 @@
 //! to find where it turned.
 //!
 //! Not yet implemented:
-//! - PGN variation export (a study writing itself back to `(...)`)
 //! - the engine fast path (ungated movegen for search workloads)
 
 mod action;
@@ -78,8 +77,8 @@ mod clock;
 mod game;
 pub mod notation;
 mod ops;
-mod piece;
 pub mod pgn;
+mod piece;
 pub mod play;
 mod position;
 mod reduce;
@@ -92,8 +91,8 @@ mod timeline;
 pub use action::{Action, IntoAction};
 pub use clock::Clocked;
 pub use game::{Game, Ply, Terminus};
-pub use piece::{Color, Piece, Role, Wing};
 pub use pgn::import;
+pub use piece::{Color, Piece, Role, Wing};
 pub use position::Position;
 pub use reduce::{
     DrawReason, Edit, Ending, Mode, Rejected, expand, in_check, legal_actions, mode, reduce,

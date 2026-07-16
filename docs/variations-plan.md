@@ -144,9 +144,21 @@ vs `children` vs `continuations` for a node's successors.
    interpreter shape as `Action → Edits → Position`, one altitude over
    text.
 3. PGN variation **export**: a study writes `(...)` — the inverse, the
-   mirror of stage 2.
-4. Tag `v0.8.0` (stages 2–3 may slip to `v0.9.0` if the parser wants
-   its own release).
+   mirror of stage 2. **Shipped v0.14.0** — `Study::score` (also its
+   `Display`, plus `figurines`), mirroring `Game`'s pair, and
+   `pgn::export_study` mirroring `export`.
+
+   The writer is the parser's inverse down to its shape: one recursive
+   function (`written`), mainline move first, then each variation in
+   parentheses, then the continuation — so re-importing a score
+   reproduces the study, mainline child 0 and all. Two conventions the
+   writer owns: Black's move restates its number (`2... d6`) at the
+   head of a variation and just after one closes, and parens hug their
+   contents (`(1... c5)`). En route the result-marker table gained its
+   one address, `Mode::result()` — `Game::score`, import verification,
+   and both exports had been carrying private copies.
+4. ~~Tag `v0.8.0`~~ — the stages shipped as `v0.8.0` (tree),
+   `v0.13.0` (import), `v0.14.0` (export).
 
 ## Explicitly deferred
 

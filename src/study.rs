@@ -28,9 +28,14 @@
 //! # Ok::<(), caissa::Rejected>(())
 //! ```
 
+use std::fmt;
+
 use crate::action::Action;
 use crate::game::Game;
+use crate::piece::Color;
 use crate::position::Position;
+use crate::reduce::Rejected;
+use crate::san::{to_figurine, to_san};
 
 /// A tree of lines from one starting position. Build it by grafting
 /// games with [`with`](Study::with); read it back as games with
@@ -60,7 +65,10 @@ impl Study {
 
     /// An empty study from a given start.
     pub fn from_position(start: Position) -> Study {
-        Study { start, branches: Vec::new() }
+        Study {
+            start,
+            branches: Vec::new(),
+        }
     }
 
     /// A game as a study of a single line.
@@ -75,7 +83,10 @@ impl Study {
     /// mainline. Lines must share the study's start — automatic when you
     /// build them from the mainline (`undo`/`apply`) or one PGN.
     pub fn with(mut self, line: Game) -> Study {
-        debug_assert!(line[0] == self.start, "a grafted line must share the study's start");
+        debug_assert!(
+            line[0] == self.start,
+            "a grafted line must share the study's start"
+        );
         graft(&mut self.branches, line.log());
         self
     }
@@ -114,9 +125,35 @@ impl Study {
     /// Fold a path of actions into a game from the study's start. The
     /// actions came from grafted games, so they always replay.
     fn game_of(&self, actions: &[Action]) -> Game {
-        actions.iter().fold(Game::from_position(self.start), |game, &action| {
-            game.apply(action).expect("a study holds only accepted actions")
-        })
+        actions
+            .iter()
+            .fold(Game::from_position(self.start), |game, &action| {
+                game.apply(action)
+                    .expect("a study holds only accepted actions")
+            })
+    }
+
+    /// The study as a publication would print it: the mainline with each
+    /// variation in parentheses where it occurs —
+    /// `1. e4 e5 (1... c5 2. Nf3 (2. c3) 2... d6) *`. Also what
+    /// `Display` shows, and the inverse of
+    /// [`import_study`](crate::pgn::import_study): re-importing a score
+    /// reproduces the study.
+    pub fn score(&self) -> String {
+        self.scored(to_san)
+    }
+
+    /// The score in figurine algebraic notation, each move wearing its
+    /// mover's glyph.
+    pub fn figurines(&self) -> String {
+        self.scored(to_figurine)
+    }
+
+    fn scored(&self, write: fn(Position, Action) -> Result<String, Rejected>) -> String {
+        let mut out = String::new();
+        written(&self.branches, self.start, 1, true, write, &mut out);
+        push(&mut out, self.mainline().mode().result().unwrap_or("*"));
+        out
     }
 }
 
@@ -124,6 +161,75 @@ impl Default for Study {
     fn default() -> Study {
         Study::new()
     }
+}
+
+impl fmt::Display for Study {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str(&self.score())
+    }
+}
+
+/// The writer's one recursion — the parser's inverse: the mainline move,
+/// then each variation to it in parentheses, then the continuation.
+/// `restate` marks the spots where Black's move needs its `N...` — at
+/// the head of a variation, and just after one closes.
+fn written(
+    branches: &[Node],
+    position: Position,
+    number: u32,
+    restate: bool,
+    write: fn(Position, Action) -> Result<String, Rejected>,
+    out: &mut String,
+) {
+    let Some((main, variations)) = branches.split_first() else {
+        return;
+    };
+    match position.turn() {
+        Color::White => push(out, &format!("{number}.")),
+        Color::Black if restate => push(out, &format!("{number}...")),
+        Color::Black => {}
+    }
+    push(
+        out,
+        &write(position, main.action).expect("a study holds only accepted actions"),
+    );
+    for variation in variations {
+        push(out, "(");
+        written(
+            std::slice::from_ref(variation),
+            position,
+            number,
+            true,
+            write,
+            out,
+        );
+        push(out, ")");
+    }
+    let next = position
+        .play(main.action)
+        .expect("a study holds only accepted actions");
+    let next_number = if position.turn() == Color::Black {
+        number + 1
+    } else {
+        number
+    };
+    written(
+        &main.branches,
+        next,
+        next_number,
+        !variations.is_empty(),
+        write,
+        out,
+    );
+}
+
+/// Tokens joined with spaces, except parens hug their contents:
+/// `(1... c5)`, never `( 1... c5 )`.
+fn push(out: &mut String, token: &str) {
+    if !out.is_empty() && !out.ends_with('(') && token != ")" {
+        out.push(' ');
+    }
+    out.push_str(token);
 }
 
 /// Walk `actions` into `branches`, descending shared moves and creating a
@@ -136,7 +242,10 @@ fn graft(branches: &mut Vec<Node>, actions: &[Action]) {
     match branches.iter().position(|node| node.action == *first) {
         Some(existing) => graft(&mut branches[existing].branches, rest),
         None => {
-            let mut node = Node { action: *first, branches: Vec::new() };
+            let mut node = Node {
+                action: *first,
+                branches: Vec::new(),
+            };
             graft(&mut node.branches, rest);
             branches.push(node);
         }

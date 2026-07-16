@@ -151,7 +151,7 @@ learning more powerful. Per-feature decision records sit beside it in
 - [x] Multi-game PGN import — `pgn::games` / `pgn::import_all`, the corpus loader for dictionary, annotator, and repertoire — `v0.11.0`
 - [x] The annotator — `review::annotate`: the shift series locates a game's turning point ("move 3, White's g4??") — the coach's first rung — `v0.12.0`
 - [x] PGN variation `(...)` import — the lexer named (a `Token` stream), one recursive descent into `Study` — `v0.13.0`
-- [ ] PGN variation export — a study writing itself back to `(...)`
+- [x] PGN variation export — `Study::score` (and `Display`, and figurines): the writer's one recursion, the parser's inverse; `import_study(study.score())` reproduces the study, and `pgn::export_study` mirrors `export` — `v0.14.0`
 - [x] A thinking player — `Minimax` negamax over a `material` evaluator; depth substitutes for accuracy — `v0.10.0`
 - [ ] MCTS and a stronger evaluator (mobility, structure); the engine fast path it will need
 - [ ] Engine fast path: ungated movegen for search workloads
