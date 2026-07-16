@@ -3,15 +3,18 @@
 //! A PGN is a game written down — so importing one is the fold the crate
 //! is built on: parse the movetext into SAN tokens, then
 //! `sans.try_fold(Game::new(), Game::apply)`. Comments (`{...}`, `;` to
-//! end of line), move numbers, and NAGs (`$n`) are skipped; variations
-//! (`(...)`) are rejected loudly rather than mis-parsed. The result
-//! marker, when present, is checked against what the board actually says.
+//! end of line), move numbers, and NAGs (`$n`) are skipped. Variations
+//! (`(...)`) are rejected by the flat path — a `Game` is a line — and
+//! read by [`import_study`], which parses their nesting into a
+//! [`Study`]. The result marker, when present, is checked against what
+//! the board actually says.
 
 use std::collections::BTreeMap;
 
 use crate::game::Game;
 use crate::piece::Color;
 use crate::reduce::{Ending, Mode, Rejected};
+use crate::study::Study;
 
 /// A parsed PGN: its tag pairs, the SAN tokens of the movetext, and the
 /// result marker if one was written.
@@ -24,6 +27,31 @@ pub struct Pgn {
 
 /// Parse PGN text into tags and SAN tokens, without playing anything.
 pub fn parse(text: &str) -> Result<Pgn, Rejected> {
+    let (tags, movetext) = split_tags(text)?;
+    let mut sans = Vec::new();
+    let mut result = None;
+    for token in lex(&movetext) {
+        match token {
+            Token::San(san) => sans.push(san),
+            Token::Result(marker) => {
+                result = Some(marker);
+                break;
+            }
+            // A Game is a line; the flat path cannot represent branches.
+            // import_study is what (...) means.
+            Token::Open | Token::Close => {
+                return Err(Rejected::Unparseable(
+                    "variations (...) are not supported".to_string(),
+                ));
+            }
+        }
+    }
+    Ok(Pgn { tags, sans, result })
+}
+
+/// The tag section from the movetext: tag lines lead, everything after
+/// the first non-tag line is movetext.
+fn split_tags(text: &str) -> Result<(BTreeMap<String, String>, String), Rejected> {
     let mut tags = BTreeMap::new();
     let mut movetext = String::new();
     for line in text.lines() {
@@ -42,25 +70,39 @@ pub fn parse(text: &str) -> Result<Pgn, Rejected> {
         movetext.push_str(line);
         movetext.push('\n');
     }
+    Ok((tags, movetext))
+}
 
-    let stripped = strip_comments(&movetext)?;
-    let mut sans = Vec::new();
-    let mut result = None;
-    for token in stripped.split_whitespace() {
-        match token {
-            "1-0" | "0-1" | "1/2-1/2" | "*" => {
-                result = Some(token.to_string());
-                break;
+/// One token of movetext. The token enum is the signature of a lexer
+/// that has earned its name: the state machine handles the regular
+/// sublanguage (comments, move numbers, NAGs), and the parens — the
+/// characters that make the language context-free — pass upward as
+/// structure for the parser's one recursion.
+#[derive(Clone, PartialEq, Eq, Debug)]
+enum Token {
+    San(String),
+    Open,
+    Close,
+    Result(String),
+}
+
+/// The lexer, named at last: raw movetext to tokens. Text → tokens
+/// (lex) → tree (parse) → [`Study`] (fold) — the same interpreter shape
+/// as `Action → Edits → Position`, one altitude over text.
+fn lex(movetext: &str) -> Vec<Token> {
+    strip_comments(movetext)
+        .split_whitespace()
+        .filter_map(|word| match word {
+            "(" => Some(Token::Open),
+            ")" => Some(Token::Close),
+            "1-0" | "0-1" | "1/2-1/2" | "*" => Some(Token::Result(word.to_string())),
+            _ if word.starts_with('$') => None,
+            _ => {
+                let san = strip_move_number(word);
+                (!san.is_empty()).then(|| Token::San(san.to_string()))
             }
-            _ if token.starts_with('$') => continue,
-            _ => {}
-        }
-        let san = strip_move_number(token);
-        if !san.is_empty() {
-            sans.push(san.to_string());
-        }
-    }
-    Ok(Pgn { tags, sans, result })
+        })
+        .collect()
 }
 
 /// Import a PGN as a played [`Game`]: the movetext folded over
@@ -77,21 +119,117 @@ pub fn import(text: &str) -> Result<Game, Rejected> {
         .iter()
         .try_fold(Game::new(), |game, san| game.apply(san.as_str()))?;
     if let Some(written) = pgn.result.as_deref() {
-        let board_says = match game.mode() {
-            Mode::Played(Ending::Checkmate { winner: Color::White }) => Some("1-0"),
-            Mode::Played(Ending::Checkmate { winner: Color::Black }) => Some("0-1"),
-            Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => Some("1/2-1/2"),
-            _ => None,
-        };
-        if let Some(expected) = board_says
-            && written != expected
-        {
-            return Err(Rejected::Unparseable(format!(
-                "result {written} contradicts the board, which says {expected}"
-            )));
-        }
+        verify_result(game.mode(), written)?;
     }
     Ok(game)
+}
+
+/// Import a PGN *with variations* as a [`Study`]. A `(...)` follows a
+/// move and holds alternatives to it, nested to any depth, so each
+/// variation's line is the prefix before the varied move plus its own
+/// moves — every line folded into a `Game` and grafted with
+/// [`Study::with`], mainline first. The flat [`import`] still rejects
+/// variations, because a `Game` is a line; a `Study` is what `(...)`
+/// means. The result marker, when present, is checked against the
+/// mainline's board exactly as [`import`] checks a game's.
+pub fn import_study(text: &str) -> Result<Study, Rejected> {
+    let (_tags, movetext) = split_tags(text)?;
+    let tokens = lex(&movetext);
+    let mut cursor = 0;
+    let mut result = None;
+    let lines = sequence(&tokens, &mut cursor, Vec::new(), false, &mut result)?;
+
+    let mut study = Study::new();
+    let mut mainline_mode = None;
+    for line in &lines {
+        let game = line
+            .iter()
+            .try_fold(Game::new(), |game, san| game.apply(san.as_str()))?;
+        if mainline_mode.is_none() {
+            mainline_mode = Some(game.mode());
+        }
+        study = study.with(game);
+    }
+    if let (Some(mode), Some(written)) = (mainline_mode, result.as_deref()) {
+        verify_result(mode, written)?;
+    }
+    Ok(study)
+}
+
+/// The parser's one recursion: read a sequence of moves, and at each
+/// `(` read alternatives to the move just played (their prefix = the
+/// current line minus that move), returning at `)`. A sequence returns
+/// its own complete line *first*, then its variations' lines in textual
+/// order — so grafting in return order keeps the mainline child 0 at
+/// every node.
+fn sequence(
+    tokens: &[Token],
+    cursor: &mut usize,
+    prefix: Vec<String>,
+    nested: bool,
+    result: &mut Option<String>,
+) -> Result<Vec<Vec<String>>, Rejected> {
+    let mut line = prefix;
+    let mut variations = Vec::new();
+    loop {
+        let Some(token) = tokens.get(*cursor) else {
+            if nested {
+                return Err(Rejected::Unparseable("unclosed variation".to_string()));
+            }
+            break;
+        };
+        *cursor += 1;
+        match token {
+            Token::San(san) => line.push(san.clone()),
+            Token::Open => {
+                let Some((_, base)) = line.split_last() else {
+                    return Err(Rejected::Unparseable(
+                        "a variation before any move".to_string(),
+                    ));
+                };
+                variations.extend(sequence(tokens, cursor, base.to_vec(), true, result)?);
+            }
+            Token::Close => {
+                if !nested {
+                    return Err(Rejected::Unparseable("unmatched )".to_string()));
+                }
+                break;
+            }
+            Token::Result(marker) => {
+                if nested {
+                    return Err(Rejected::Unparseable(
+                        "a result inside a variation".to_string(),
+                    ));
+                }
+                *result = Some(marker.clone());
+                break;
+            }
+        }
+    }
+    let mut lines = vec![line];
+    lines.extend(variations);
+    Ok(lines)
+}
+
+/// What the board attests the result to be, when it can.
+fn board_result(mode: Mode) -> Option<&'static str> {
+    match mode {
+        Mode::Played(Ending::Checkmate { winner: Color::White }) => Some("1-0"),
+        Mode::Played(Ending::Checkmate { winner: Color::Black }) => Some("0-1"),
+        Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => Some("1/2-1/2"),
+        _ => None,
+    }
+}
+
+fn verify_result(mode: Mode, written: &str) -> Result<(), Rejected> {
+    if let Some(expected) = board_result(mode)
+        && written != expected
+    {
+        return Err(Rejected::Unparseable(format!(
+            "result {written} contradicts the board, which says {expected}"
+        )));
+    }
+    Ok(())
 }
 
 /// Split a PGN database into its games — contiguous slices, no copying.
@@ -142,12 +280,7 @@ pub fn import_all(text: &str) -> Result<Vec<Game>, Rejected> {
 /// (resignations, agreements); a declared result that contradicts the
 /// board is rejected, mirroring [`import`].
 pub fn export(game: &Game, tags: &BTreeMap<String, String>) -> Result<String, Rejected> {
-    let board_says = match game.mode() {
-        Mode::Played(Ending::Checkmate { winner: Color::White }) => Some("1-0"),
-        Mode::Played(Ending::Checkmate { winner: Color::Black }) => Some("0-1"),
-        Mode::Played(Ending::Stalemate) | Mode::Played(Ending::Draw(_)) => Some("1/2-1/2"),
-        _ => None,
-    };
+    let board_says = board_result(game.mode());
     let declared = tags.get("Result").map(String::as_str);
     let result = match (board_says, declared) {
         (Some(board), Some(tag)) if board != tag => {
@@ -212,7 +345,7 @@ fn tag_pair(line: &str) -> Option<(String, String)> {
     Some((key.to_string(), value.to_string()))
 }
 
-fn strip_comments(text: &str) -> Result<String, Rejected> {
+fn strip_comments(text: &str) -> String {
     let mut out = String::new();
     let mut in_brace = false;
     let mut in_line = false;
@@ -228,14 +361,16 @@ fn strip_comments(text: &str) -> Result<String, Rejected> {
             _ if in_brace => {}
             ';' => in_line = true,
             '(' | ')' => {
-                return Err(Rejected::Unparseable(
-                    "variations (...) are not supported".to_string(),
-                ));
+                // Structural tokens for the parser, spaced so they lex
+                // cleanly even glued to a move: "(3." or "Nf6)".
+                out.push(' ');
+                out.push(c);
+                out.push(' ');
             }
             _ => out.push(c),
         }
     }
-    Ok(out)
+    out
 }
 
 /// `"1.e4"` → `"e4"`, `"1."` / `"1..."` → `""`; `"0-0"` is left whole —

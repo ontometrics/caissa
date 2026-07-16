@@ -124,6 +124,7 @@ vs `children` vs `continuations` for a node's successors.
    line added stays the mainline.
 2. PGN variation **import**: turn today's "variations rejected loudly"
    into a recursive-descent parse of nested `(...)` into the tree.
+   **Shipped v0.13.0** — `pgn::import_study`, per the design below.
 
    Design (settled with Rob): this is the moment the anonymous lexer
    gets its name. The pipeline inside `pgn::parse` (comment-stripping

@@ -69,7 +69,7 @@
 //! to find where it turned.
 //!
 //! Not yet implemented:
-//! - PGN variation `(...)` import/export
+//! - PGN variation export (a study writing itself back to `(...)`)
 //! - the engine fast path (ungated movegen for search workloads)
 
 mod action;

@@ -33,9 +33,15 @@ mod pure_transitions {
         let start = Position::default();
         let after = start.play("e2e4").unwrap();
 
-        assert_that!(start.at(square("e2")), some(eq(piece(Color::White, Role::Pawn))));
+        assert_that!(
+            start.at(square("e2")),
+            some(eq(piece(Color::White, Role::Pawn)))
+        );
         assert_that!(after.at(square("e2")), none());
-        assert_that!(after.at(square("e4")), some(eq(piece(Color::White, Role::Pawn))));
+        assert_that!(
+            after.at(square("e4")),
+            some(eq(piece(Color::White, Role::Pawn)))
+        );
     }
 
     #[test]
@@ -110,7 +116,10 @@ mod rejections {
     fn an_empty_square_is_rejected() {
         let result = Position::default().play("e4e5");
 
-        assert_that!(result, err(eq(&Rejected::EmptySquare { from: square("e4") })));
+        assert_that!(
+            result,
+            err(eq(&Rejected::EmptySquare { from: square("e4") }))
+        );
     }
 
     #[test]
