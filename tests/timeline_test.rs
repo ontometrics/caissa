@@ -21,9 +21,18 @@ mod jump_notation {
 
         assert_that!(
             game[1].at(e4),
-            some(eq(Piece { color: Color::White, role: Role::Pawn }))
+            some(eq(Piece {
+                color: Color::White,
+                role: Role::Pawn
+            }))
         );
-        assert_that!(game[2].at(e5), some(eq(Piece { color: Color::Black, role: Role::Pawn })));
+        assert_that!(
+            game[2].at(e5),
+            some(eq(Piece {
+                color: Color::Black,
+                role: Role::Pawn
+            }))
+        );
         assert_that!(game[game.plies()], eq(game.position()));
     }
 
@@ -33,7 +42,11 @@ mod jump_notation {
 
         for ply in 1..=game.plies() {
             let mover = game[ply - 1].turn();
-            let expected = if ply % 2 == 1 { Color::White } else { Color::Black };
+            let expected = if ply % 2 == 1 {
+                Color::White
+            } else {
+                Color::Black
+            };
             assert_that!(mover, eq(expected));
         }
     }
@@ -59,7 +72,10 @@ mod terminus {
         assert_that!(game[Terminus], eq(game.position()));
         assert_that!(
             game[Terminus].at(h4),
-            some(eq(Piece { color: Color::Black, role: Role::Queen }))
+            some(eq(Piece {
+                color: Color::Black,
+                role: Role::Queen
+            }))
         );
     }
 
@@ -70,7 +86,10 @@ mod terminus {
         assert_that!(game[Terminus - 1].at(h4), none());
         assert_that!(
             game[Terminus - 1].at(d8),
-            some(eq(Piece { color: Color::Black, role: Role::Queen }))
+            some(eq(Piece {
+                color: Color::Black,
+                role: Role::Queen
+            }))
         );
         assert_that!(game[Terminus - 1], eq(game[3]));
     }

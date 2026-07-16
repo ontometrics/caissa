@@ -16,7 +16,11 @@ mod building_actions {
     fn shr_with_a_role_makes_it_a_promotion() {
         assert_that!(
             e7 >> e8 >> queen,
-            eq(Action::Promote { from: e7, to: e8, into: Role::Queen })
+            eq(Action::Promote {
+                from: e7,
+                to: e8,
+                into: Role::Queen
+            })
         );
     }
 }
@@ -32,21 +36,32 @@ mod board_arithmetic {
 
         assert_that!(
             position.at(f3),
-            some(eq(Piece { color: Color::White, role: Role::Knight }))
+            some(eq(Piece {
+                color: Color::White,
+                role: Role::Knight
+            }))
         );
         assert_that!(position.turn(), eq(Color::Black));
     }
 
     #[test]
     fn promotion_reads_like_notation() {
-        let board = Position::empty(Color::White)
-            .with(h7, Piece { color: Color::White, role: Role::Pawn });
+        let board = Position::empty(Color::White).with(
+            h7,
+            Piece {
+                color: Color::White,
+                role: Role::Pawn,
+            },
+        );
 
         let promoted = (board + (h7 >> h8 >> knight)).unwrap();
 
         assert_that!(
             promoted.at(h8),
-            some(eq(Piece { color: Color::White, role: Role::Knight }))
+            some(eq(Piece {
+                color: Color::White,
+                role: Role::Knight
+            }))
         );
     }
 
@@ -57,7 +72,10 @@ mod board_arithmetic {
         assert_that!(
             result,
             err(eq(&Rejected::NotYourTurn {
-                piece: Piece { color: Color::Black, role: Role::Pawn }
+                piece: Piece {
+                    color: Color::Black,
+                    role: Role::Pawn
+                }
             }))
         );
     }

@@ -69,7 +69,9 @@ mod flagging {
 
         assert_that!(
             flagged.mode(),
-            eq(Mode::Played(Ending::Flagged { winner: Color::White }))
+            eq(Mode::Played(Ending::Flagged {
+                winner: Color::White
+            }))
         );
         assert_that!(flagged.ended(), some(eq(110)));
     }
@@ -83,7 +85,9 @@ mod flagging {
         assert_that!(
             result,
             err(eq(&Rejected::GameOver {
-                ending: Ending::Flagged { winner: Color::White }
+                ending: Ending::Flagged {
+                    winner: Color::White
+                }
             }))
         );
     }

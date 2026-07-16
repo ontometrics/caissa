@@ -59,7 +59,12 @@ pub fn annotate(game: &Game, eval: &impl Fn(Position) -> i32) -> Vec<Assessment>
                 Color::White => delta,
                 Color::Black => -delta,
             };
-            Assessment { ply: ply + 1, mover, action: game.log()[ply], swing }
+            Assessment {
+                ply: ply + 1,
+                mover,
+                action: game.log()[ply],
+                swing,
+            }
         })
         .collect()
 }

@@ -67,7 +67,12 @@ impl<T: Copy + PartialOrd> Timeline<T> {
         // A game born from a terminal position was over before we began
         // watching: an empty interval.
         let ended = ended_stamp(&game, at);
-        Timeline { started: at, ended, game, stamps: Vec::new() }
+        Timeline {
+            started: at,
+            ended,
+            game,
+            stamps: Vec::new(),
+        }
     }
 
     /// Pure: returns a new timeline, this one is untouched. The action goes
@@ -83,7 +88,12 @@ impl<T: Copy + PartialOrd> Timeline<T> {
         let ended = ended_stamp(&game, at);
         let mut stamps = self.stamps.clone();
         stamps.push(at);
-        Ok(Timeline { started: self.started, ended, game, stamps })
+        Ok(Timeline {
+            started: self.started,
+            ended,
+            game,
+            stamps,
+        })
     }
 
     pub fn game(&self) -> &Game {
@@ -112,7 +122,11 @@ impl<T: Copy + PartialOrd> Timeline<T> {
         T: Sub,
     {
         self.stamps.iter().enumerate().map(|(ply, &at)| {
-            let before = if ply == 0 { self.started } else { self.stamps[ply - 1] };
+            let before = if ply == 0 {
+                self.started
+            } else {
+                self.stamps[ply - 1]
+            };
             Frame {
                 think_time: at - before,
                 action: self.game.log()[ply],

@@ -9,11 +9,17 @@ use caissa::{Action, Color, Ending, Game, Mode, Piece, Position, Role};
 use googletest::prelude::*;
 
 fn white(role: Role) -> Piece {
-    Piece { color: Color::White, role }
+    Piece {
+        color: Color::White,
+        role,
+    }
 }
 
 fn black(role: Role) -> Piece {
-    Piece { color: Color::Black, role }
+    Piece {
+        color: Color::Black,
+        role,
+    }
 }
 
 /// Ŵ, the cheap estimate — the first rung of the evaluator ladder.
@@ -33,7 +39,10 @@ mod evaluation {
             .with(d1, white(Role::Queen));
 
         assert_that!(material(board), eq(900)); // White, to move, is up a queen
-        assert_that!(material(Position::empty(Color::Black).with(d1, white(Role::Queen))), eq(-900));
+        assert_that!(
+            material(Position::empty(Color::Black).with(d1, white(Role::Queen))),
+            eq(-900)
+        );
     }
 }
 
@@ -71,7 +80,9 @@ mod tactics {
         // Robust to which mate it picks: assert the move actually mates.
         assert_that!(
             after.mode(),
-            eq(Mode::Played(Ending::Checkmate { winner: Color::White }))
+            eq(Mode::Played(Ending::Checkmate {
+                winner: Color::White
+            }))
         );
     }
 

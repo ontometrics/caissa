@@ -62,7 +62,9 @@ fn the_watcher_flags_a_player_who_never_moves() {
     assert_that!(clock.fired_callbacks(), eq(1));
     assert_that!(
         table.lock().unwrap().mode(),
-        eq(Mode::Played(Ending::Flagged { winner: Color::Black }))
+        eq(Mode::Played(Ending::Flagged {
+            winner: Color::Black
+        }))
     );
 }
 
@@ -86,6 +88,8 @@ fn a_move_in_time_cancels_the_claim_and_rearms() {
     assert_that!(clock.fired_callbacks(), eq(1));
     assert_that!(
         table.lock().unwrap().mode(),
-        eq(Mode::Played(Ending::Flagged { winner: Color::White }))
+        eq(Mode::Played(Ending::Flagged {
+            winner: Color::White
+        }))
     );
 }

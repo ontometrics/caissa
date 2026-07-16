@@ -20,10 +20,19 @@ fn main() {
     let series = annotate(&game, &|p| evaluate(p, 1, &material));
     for a in &series {
         let san = to_san(game[a.ply - 1], a.action).unwrap();
-        println!("  ply {:>2}  {:<5}  {:<6}  swing {:+}", a.ply, format!("{:?}", a.mover), san, a.swing);
+        println!(
+            "  ply {:>2}  {:<5}  {:<6}  swing {:+}",
+            a.ply,
+            format!("{:?}", a.mover),
+            san,
+            a.swing
+        );
     }
 
     let worst = series.iter().min_by_key(|a| a.swing).unwrap();
     let san = to_san(game[worst.ply - 1], worst.action).unwrap();
-    println!("\n  turning point: move {} ({:?}'s {san}), swing {:+}", worst.ply, worst.mover, worst.swing);
+    println!(
+        "\n  turning point: move {} ({:?}'s {san}), swing {:+}",
+        worst.ply, worst.mover, worst.swing
+    );
 }

@@ -50,7 +50,11 @@ mod round_trips {
     fn the_roster_tags_lead_in_canonical_order() {
         let exported = pgn::export(
             &opera_game(),
-            &tags(&[("White", "Paul Morphy"), ("Event", "Paris Opera"), ("Zoo", "extra")]),
+            &tags(&[
+                ("White", "Paul Morphy"),
+                ("Event", "Paris Opera"),
+                ("Zoo", "extra"),
+            ]),
         )
         .unwrap();
 

@@ -40,7 +40,10 @@ mod frames {
         assert_that!(last.position, eq(timeline.game().position()));
         assert_that!(
             last.position.at(f3),
-            some(eq(Piece { color: Color::White, role: Role::Knight }))
+            some(eq(Piece {
+                color: Color::White,
+                role: Role::Knight
+            }))
         );
     }
 }
@@ -64,7 +67,10 @@ mod time_discipline {
         assert_that!(
             result,
             err(eq(&Rejected::NotYourTurn {
-                piece: Piece { color: Color::Black, role: Role::Pawn }
+                piece: Piece {
+                    color: Color::Black,
+                    role: Role::Pawn
+                }
             }))
         );
     }
@@ -106,7 +112,9 @@ mod snodgrass_interval {
         assert_that!(
             result,
             err(eq(&Rejected::GameOver {
-                ending: Ending::Checkmate { winner: Color::Black }
+                ending: Ending::Checkmate {
+                    winner: Color::Black
+                }
             }))
         );
     }

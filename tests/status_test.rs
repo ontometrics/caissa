@@ -75,7 +75,9 @@ mod endings {
 
         assert_that!(
             game.mode(),
-            eq(Mode::Played(Ending::Checkmate { winner: Color::Black }))
+            eq(Mode::Played(Ending::Checkmate {
+                winner: Color::Black
+            }))
         );
         assert_that!(game.mode(), eq(game[Terminus].mode()));
     }
@@ -111,7 +113,9 @@ mod endings {
         assert_that!(game.mode(), eq(Mode::Played(Ending::Stalemate)));
         assert_that!(
             game.apply("a8a7"),
-            err(eq(&Rejected::GameOver { ending: Ending::Stalemate }))
+            err(eq(&Rejected::GameOver {
+                ending: Ending::Stalemate
+            }))
         );
     }
 }
@@ -130,7 +134,9 @@ mod after_the_end {
         assert_that!(
             result,
             err(eq(&Rejected::GameOver {
-                ending: Ending::Checkmate { winner: Color::Black }
+                ending: Ending::Checkmate {
+                    winner: Color::Black
+                }
             }))
         );
     }

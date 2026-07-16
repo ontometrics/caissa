@@ -5,7 +5,10 @@ use caissa::{Color, Game, Piece, Role};
 use googletest::prelude::*;
 
 fn white(role: Role) -> Piece {
-    Piece { color: Color::White, role }
+    Piece {
+        color: Color::White,
+        role,
+    }
 }
 
 /// A game is a study of one line; an empty study is one trivial line.

@@ -110,7 +110,12 @@ impl<E: Fn(Position) -> i32> Player for Minimax<E> {
         position
             .legal_actions()
             .max_by_key(|&action| {
-                -negamax(child(position, action), self.depth.saturating_sub(1), 1, &self.eval)
+                -negamax(
+                    child(position, action),
+                    self.depth.saturating_sub(1),
+                    1,
+                    &self.eval,
+                )
             })
             .expect("called only while the game is playing")
     }
@@ -137,7 +142,7 @@ pub fn evaluate(position: Position, depth: u32, eval: &impl Fn(Position) -> i32)
 fn negamax<E: Fn(Position) -> i32>(position: Position, depth: u32, ply: i32, eval: &E) -> i32 {
     match position.mode() {
         Mode::Played(Ending::Checkmate { .. }) => -(MATE - ply), // the side to move is mated
-        Mode::Played(_) => 0,                                     // stalemate or draw
+        Mode::Played(_) => 0,                                    // stalemate or draw
         Mode::Playing if depth == 0 => eval(position),
         Mode::Playing => position
             .legal_actions()
@@ -150,7 +155,9 @@ fn negamax<E: Fn(Position) -> i32>(position: Position, depth: u32, ply: i32, eva
 /// The position after a known-legal action — search only ever applies
 /// moves it enumerated, so this never rejects.
 fn child(position: Position, action: Action) -> Position {
-    position.play(action).expect("a legal action applies cleanly")
+    position
+        .play(action)
+        .expect("a legal action applies cleanly")
 }
 
 /// Material balance from the side to move's view, in centipawns — the
@@ -168,7 +175,11 @@ pub fn material(position: Position) -> i32 {
                 Role::Queen => 900,
                 Role::King => 0,
             };
-            score += if piece.color == position.turn() { value } else { -value };
+            score += if piece.color == position.turn() {
+                value
+            } else {
+                -value
+            };
         }
     }
     score

@@ -37,7 +37,9 @@ const CORNERS: [(Square, Color, Wing); 4] = [
 ];
 
 impl Rights {
-    const ALL: Rights = Rights { remaining: [true; 4] };
+    const ALL: Rights = Rights {
+        remaining: [true; 4],
+    };
 
     fn slot(color: Color, wing: Wing) -> usize {
         match (color, wing) {
@@ -94,7 +96,12 @@ impl Position {
     /// castling rights — castling legality still requires the king and
     /// rook to actually stand on their home squares.
     pub fn empty(turn: Color) -> Position {
-        Position { board: [None; 64], turn, rights: Rights::ALL, passant: None }
+        Position {
+            board: [None; 64],
+            turn,
+            rights: Rights::ALL,
+            passant: None,
+        }
     }
 
     /// A new position with `piece` placed on `square`.
@@ -162,7 +169,10 @@ impl Position {
     /// Compare keys, not positions, when counting repetitions.
     pub fn repetition_key(self) -> Position {
         let live = self.passant.filter(|&skipped| self.ep_capturable(skipped));
-        Position { passant: live, ..self }
+        Position {
+            passant: live,
+            ..self
+        }
     }
 
     fn ep_capturable(self, skipped: Square) -> bool {
@@ -172,7 +182,11 @@ impl Position {
         };
         [-1i8, 1].into_iter().any(|dx| {
             skipped.offset(dx, pusher).is_some_and(|square| {
-                self.at(square) == Some(Piece { color: self.turn, role: Role::Pawn })
+                self.at(square)
+                    == Some(Piece {
+                        color: self.turn,
+                        role: Role::Pawn,
+                    })
             })
         })
     }
@@ -292,7 +306,12 @@ impl Position {
             square => Some(square.parse().map_err(|_| reject())?),
         };
 
-        Ok(Position { board, turn, rights: Rights { remaining }, passant })
+        Ok(Position {
+            board,
+            turn,
+            rights: Rights { remaining },
+            passant,
+        })
     }
 
     /// The interpreter's back half: a total evaluator that folds a move's
@@ -309,8 +328,14 @@ impl Position {
         for edit in edits {
             match *edit {
                 Edit::Lift(square) => {
-                    if let Some(Piece { color, role: Role::King }) = board[square.index()] {
-                        rights = rights.without(color, Wing::King).without(color, Wing::Queen);
+                    if let Some(Piece {
+                        color,
+                        role: Role::King,
+                    }) = board[square.index()]
+                    {
+                        rights = rights
+                            .without(color, Wing::King)
+                            .without(color, Wing::Queen);
                     }
                     for (corner, color, wing) in CORNERS {
                         if square == corner {
@@ -323,7 +348,12 @@ impl Position {
                 Edit::Skip(square) => passant = Some(square),
             }
         }
-        Position { board, turn: self.turn.opponent(), rights, passant }
+        Position {
+            board,
+            turn: self.turn.opponent(),
+            rights,
+            passant,
+        }
     }
 }
 
@@ -374,7 +404,11 @@ fn fen_piece(letter: char) -> Option<Piece> {
         'k' => Role::King,
         _ => return None,
     };
-    let color = if letter.is_ascii_uppercase() { Color::White } else { Color::Black };
+    let color = if letter.is_ascii_uppercase() {
+        Color::White
+    } else {
+        Color::Black
+    };
     Some(Piece { color, role })
 }
 

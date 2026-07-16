@@ -14,8 +14,12 @@ type Tally = [u32; 3];
 
 fn credit(game: &Game) -> usize {
     match game.mode() {
-        Mode::Played(Ending::Checkmate { winner: Color::White }) => 0,
-        Mode::Played(Ending::Checkmate { winner: Color::Black }) => 2,
+        Mode::Played(Ending::Checkmate {
+            winner: Color::White,
+        }) => 0,
+        Mode::Played(Ending::Checkmate {
+            winner: Color::Black,
+        }) => 2,
         _ => 1,
     }
 }
@@ -85,5 +89,8 @@ fn tallies_merge_because_they_are_a_monoid() {
         }
     }
 
-    assert_that!(merged, eq(&dictionary(&[opera_game(), fools_mate(), ruy_lopez()])));
+    assert_that!(
+        merged,
+        eq(&dictionary(&[opera_game(), fools_mate(), ruy_lopez()]))
+    );
 }

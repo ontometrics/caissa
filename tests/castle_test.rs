@@ -117,10 +117,7 @@ mod denials {
     fn castling_with_pieces_between_cannot_reach() {
         let result = Position::default().play("e1g1");
 
-        assert_that!(
-            result,
-            err(eq(&Rejected::CannotReach { from: e1, to: g1 }))
-        );
+        assert_that!(result, err(eq(&Rejected::CannotReach { from: e1, to: g1 })));
     }
 }
 

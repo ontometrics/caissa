@@ -42,7 +42,11 @@ mod resolution {
         assert_that!(
             result,
             err(eq(&Rejected::NoMatch {
-                san: San::Move { role: Role::Knight, origin: Origin::Anywhere, to: f6 }
+                san: San::Move {
+                    role: Role::Knight,
+                    origin: Origin::Anywhere,
+                    to: f6
+                }
             }))
         );
     }
@@ -169,7 +173,9 @@ mod castling_and_suffixes {
 
         assert_that!(
             game.mode(),
-            eq(Mode::Played(Ending::Checkmate { winner: Color::Black }))
+            eq(Mode::Played(Ending::Checkmate {
+                winner: Color::Black
+            }))
         );
     }
 }

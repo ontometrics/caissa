@@ -13,7 +13,11 @@ pub enum Action {
     /// Move whatever stands on `from` to `to`.
     Move { from: Square, to: Square },
     /// A pawn reaching the last rank must say what it becomes.
-    Promote { from: Square, to: Square, into: Role },
+    Promote {
+        from: Square,
+        to: Square,
+        into: Role,
+    },
 }
 
 impl From<(Square, Square)> for Action {
@@ -35,10 +39,26 @@ impl FromStr for Action {
         let to: Square = s[2..4].parse().map_err(|_| reject())?;
         match s.as_bytes().get(4) {
             None => Ok(Action::Move { from, to }),
-            Some(b'q') => Ok(Action::Promote { from, to, into: Role::Queen }),
-            Some(b'r') => Ok(Action::Promote { from, to, into: Role::Rook }),
-            Some(b'b') => Ok(Action::Promote { from, to, into: Role::Bishop }),
-            Some(b'n') => Ok(Action::Promote { from, to, into: Role::Knight }),
+            Some(b'q') => Ok(Action::Promote {
+                from,
+                to,
+                into: Role::Queen,
+            }),
+            Some(b'r') => Ok(Action::Promote {
+                from,
+                to,
+                into: Role::Rook,
+            }),
+            Some(b'b') => Ok(Action::Promote {
+                from,
+                to,
+                into: Role::Bishop,
+            }),
+            Some(b'n') => Ok(Action::Promote {
+                from,
+                to,
+                into: Role::Knight,
+            }),
             Some(_) => Err(reject()),
         }
     }

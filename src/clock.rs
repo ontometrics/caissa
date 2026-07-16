@@ -34,7 +34,11 @@ where
     D: Copy + PartialOrd + Default + Add<Output = D>,
 {
     pub fn begin(start: Position, at: T, budget: D) -> Clocked<T, D> {
-        Clocked { timeline: Timeline::begin(start, at), budget, flagged: None }
+        Clocked {
+            timeline: Timeline::begin(start, at),
+            budget,
+            flagged: None,
+        }
     }
 
     pub fn timeline(&self) -> &Timeline<T> {
@@ -69,10 +73,13 @@ where
             .map(|(_, frame)| frame.think_time)
             .fold(D::default(), |total, think_time| total + think_time);
         let latest = self.timeline.latest();
-        let ticking = self.mode() == Mode::Playing
-            && game.position().turn() == color
-            && now >= latest;
-        if ticking { thought + (now - latest) } else { thought }
+        let ticking =
+            self.mode() == Mode::Playing && game.position().turn() == color && now >= latest;
+        if ticking {
+            thought + (now - latest)
+        } else {
+            thought
+        }
     }
 
     /// What is left of `color`'s budget as of `now` — the number on the
@@ -82,7 +89,11 @@ where
         D: Sub<Output = D>,
     {
         let spent = self.spent(color, now);
-        if spent >= self.budget { D::default() } else { self.budget - spent }
+        if spent >= self.budget {
+            D::default()
+        } else {
+            self.budget - spent
+        }
     }
 
     /// Pure: returns a new clocked timeline, this one is untouched. A move
@@ -90,14 +101,20 @@ where
     /// too late to exist.
     pub fn record(&self, action: impl IntoAction, at: T) -> Result<Clocked<T, D>, Rejected> {
         if let Some((winner, _)) = self.flagged {
-            return Err(Rejected::GameOver { ending: Ending::Flagged { winner } });
+            return Err(Rejected::GameOver {
+                ending: Ending::Flagged { winner },
+            });
         }
         let mover = self.timeline.game().position().turn();
         if at >= self.timeline.latest() && self.spent(mover, at) > self.budget {
             return Err(Rejected::OutOfTime);
         }
         let timeline = self.timeline.record(action, at)?;
-        Ok(Clocked { timeline, budget: self.budget, flagged: None })
+        Ok(Clocked {
+            timeline,
+            budget: self.budget,
+            flagged: None,
+        })
     }
 
     /// The forcing mechanism: when the player to move has exceeded their

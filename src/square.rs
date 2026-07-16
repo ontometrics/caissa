@@ -23,7 +23,10 @@ impl Square {
 
     /// Every square on the board, a1 through h8.
     pub fn all() -> impl Iterator<Item = Square> {
-        (0..64u8).map(|index| Square { file: index % 8, rank: index / 8 })
+        (0..64u8).map(|index| Square {
+            file: index % 8,
+            rank: index / 8,
+        })
     }
 
     pub fn file(self) -> u8 {

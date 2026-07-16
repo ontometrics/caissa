@@ -23,9 +23,17 @@ pub enum San {
     /// `O-O`, `O-O-O`
     Castle(Wing),
     /// `e4`, `Nf3`, `Nbd2`, `Rxe5`
-    Move { role: Role, origin: Origin, to: Square },
+    Move {
+        role: Role,
+        origin: Origin,
+        to: Square,
+    },
     /// `e8=Q`, `exd8=N`
-    Promote { origin: Origin, to: Square, into: Role },
+    Promote {
+        origin: Origin,
+        to: Square,
+        into: Role,
+    },
 }
 
 /// Where the mover comes from — as much as the text cares to say.
@@ -67,7 +75,10 @@ impl San {
                     Wing::King => 6,
                     Wing::Queen => 2,
                 };
-                return Ok(Action::Move { from: Square::at(4, rank), to: Square::at(file, rank) });
+                return Ok(Action::Move {
+                    from: Square::at(4, rank),
+                    to: Square::at(file, rank),
+                });
             }
             San::Move { role, origin, to } => legal_actions(position)
                 .filter(|action| match *action {
@@ -81,9 +92,11 @@ impl San {
                 .collect(),
             San::Promote { origin, to, into } => legal_actions(position)
                 .filter(|action| match *action {
-                    Action::Promote { from, to: target, into: role } => {
-                        target == to && role == into && origin.admits(from)
-                    }
+                    Action::Promote {
+                        from,
+                        to: target,
+                        into: role,
+                    } => target == to && role == into && origin.admits(from),
                     Action::Move { .. } => false,
                 })
                 .collect(),
@@ -111,7 +124,11 @@ impl San {
             Action::Move { from, to } => {
                 let piece = position.at(from).expect("a legal move starts on a piece");
                 if piece.role == Role::King && from.file().abs_diff(to.file()) == 2 {
-                    let wing = if to.file() == 6 { Wing::King } else { Wing::Queen };
+                    let wing = if to.file() == 6 {
+                        Wing::King
+                    } else {
+                        Wing::Queen
+                    };
                     return San::Castle(wing);
                 }
                 let origin = if piece.role == Role::Pawn {
@@ -119,7 +136,11 @@ impl San {
                 } else {
                     minimal_origin(position, piece.role, from, to)
                 };
-                San::Move { role: piece.role, origin, to }
+                San::Move {
+                    role: piece.role,
+                    origin,
+                    to,
+                }
             }
         }
     }
@@ -197,7 +218,9 @@ fn notate(
     let captures = match action {
         Action::Move { from, to } | Action::Promote { from, to, .. } => {
             position.at(to).is_some()
-                || (position.at(from).is_some_and(|piece| piece.role == Role::Pawn)
+                || (position
+                    .at(from)
+                    .is_some_and(|piece| piece.role == Role::Pawn)
                     && from.file() != to.file())
         }
     };

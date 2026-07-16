@@ -30,7 +30,11 @@ mod a_finished_game {
     #[test]
     fn a_random_game_always_ends() {
         // The 75-move and fivefold draws cap every line, so the loop halts.
-        let game = between(&Random::seeded(42), &Random::seeded(43), Position::default());
+        let game = between(
+            &Random::seeded(42),
+            &Random::seeded(43),
+            Position::default(),
+        );
 
         assert_that!(game.mode() == Mode::Playing, eq(false));
     }

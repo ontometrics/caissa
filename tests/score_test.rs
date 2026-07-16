@@ -105,10 +105,23 @@ mod precision {
     fn a_capturing_underpromotion_writes_itself() {
         let board = Position::empty(Color::White)
             .with(h7, Piece::white(Role::Pawn))
-            .with(g8, Piece { color: Color::Black, role: Role::Rook });
+            .with(
+                g8,
+                Piece {
+                    color: Color::Black,
+                    role: Role::Rook,
+                },
+            );
 
         assert_that!(
-            to_san(board, Action::Promote { from: h7, to: g8, into: Role::Knight }),
+            to_san(
+                board,
+                Action::Promote {
+                    from: h7,
+                    to: g8,
+                    into: Role::Knight
+                }
+            ),
             ok(eq(&"hxg8=N".to_string()))
         );
     }

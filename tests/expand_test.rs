@@ -7,7 +7,9 @@ use googletest::prelude::*;
 
 fn fold(line: &[&str]) -> Position {
     line.iter()
-        .try_fold(Position::default(), |position, action| position.play(*action))
+        .try_fold(Position::default(), |position, action| {
+            position.play(*action)
+        })
         .unwrap()
 }
 

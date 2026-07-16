@@ -55,8 +55,7 @@ mod reading {
     #[test]
     fn the_canonical_start_reads_back_as_default() {
         let read =
-            Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
-                .unwrap();
+            Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1").unwrap();
 
         assert_that!(read, eq(Position::default()));
     }
@@ -73,9 +72,8 @@ mod reading {
 
     #[test]
     fn counters_are_accepted_but_not_state() {
-        let read =
-            Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 37 14")
-                .unwrap();
+        let read = Position::from_fen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 37 14")
+            .unwrap();
 
         assert_that!(read, eq(Position::default()));
     }
