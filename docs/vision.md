@@ -116,6 +116,31 @@ Same family as the residual-primitive smells (`&mut` in `Rights`, the
 `Option` beside `Change`): a surface that hadn't finished speaking the
 domain's language.
 
+**Composition without a compose operator (Rob).** Rust, having no
+garbage collector, has no default `.` in Haskell's sense — no idiomatic
+function-composition operator. The reason is structural:
+functions-as-data means captured *environments* as data, and someone
+must own every environment as composed functions flow around; GC is
+that someone. Rust can express composition (`move |x| g(f(x))`), but
+each closure is its own type owning its captures, so composed functions
+have unnameable nesting types, erasure (`Box<dyn Fn>`) costs allocation
+and dispatch, and captured references drag lifetimes into signatures.
+What Rust has instead is its *other* dot: the method chain.
+`x.f().g()` composes **values through transformations**, ownership
+threading linearly, no environments captured — Haskell's dot composes
+functions into functions; Rust's dot composes values through methods.
+This crate is that idiom throughout (`self`-consuming `play`, `without`,
+`apply`, `try_fold` everywhere): **a fold is exactly the composition
+pattern ownership loves** — transformations over a threaded
+accumulator, never functions glued into functions. It is also the
+third and deepest reason the parser-combinator IOU was voided:
+combinator libraries are function-composition frameworks, natural in
+GC-land and taxed in Rust (generic towers or boxed dispatch), while
+`or_else` and `?` are methods on an owned `Result` — value composition
+wearing combinator semantics. FP in Rust is not Haskell transliterated:
+no GC means no default compose, so composition migrates from functions
+to values, and the fold becomes the load-bearing idiom.
+
 **Time as data.** The core never reads a clock. `Timeline` annotates
 the log with stamps (generic — integers in tests, `Instant` in
 production); `started`/`ended` form a Snodgrass valid-time interval
