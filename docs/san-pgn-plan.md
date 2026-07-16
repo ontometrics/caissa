@@ -117,6 +117,25 @@ This is the one breaking change (trait signature), hence the minor bump.
    > function. Match the parsing technology to the grammar's mass —
    > baker's grammar has it, PGN's doesn't. Extract, don't anticipate,
    > applied to parsers.
+   >
+   > **Refinement (Rob):** there *are* two move parsers — coordinate
+   > (`e2e4`, `Action::FromStr`) and shorthand (`Nf5`, `San::FromStr`) —
+   > and the sniffing `IntoAction for &str` alternates them:
+   > `parse::<Action>().or_else(|_| parse::<San>()?.resolve(...))`. That
+   > `or_else` *is* the `alt` combinator, stdlib-flavored, its ordering
+   > justified by grammar disjointness; and the `FromStr` family
+   > (`Square`, `Action`, `San`) is a set of parser values with a uniform
+   > interface, composed by sequencing (`Action` and `San` both call
+   > `Square`'s parser). So the crate has **combinator structure without
+   > combinator machinery**. What a library adds — a generic parser type
+   > with *remainder threading* (`(T, rest)`), `many`, `separated_list` —
+   > is unneeded here because tokenization is separable: the PGN state
+   > machine whitespace-splits movetext before the token parsers run, so
+   > no parser ever reports where it stopped. The book lesson:
+   > combinators are a structure latent in `FromStr + Result` (`or_else`
+   > = alt, `?` = seq); the library is that structure reified when
+   > composition count and remainder threading cross a threshold. Baker
+   > crosses it; caissa sits just below it.
 4. **`import`** — `pub fn import(pgn: &str) -> Result<Game, Rejected>`:
    the movetext folded over `Game::apply`. Victory-lap tests: the Opera
    Game (has O-O-O and mate) and the Immortal Game (wild captures and
