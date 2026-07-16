@@ -102,6 +102,21 @@ This is the one breaking change (trait signature), hence the minor bump.
    NAGs `$n`; reject variations `(...)` loudly rather than mis-parse.
    Termination marker (`1-0`, `0-1`, `1/2-1/2`, `*`) checked against the
    folded game's mode.
+
+   > **Amended after the fact (Rob's review).** What shipped is a
+   > hand-written *state machine*, not combinators — and the promise
+   > above is voided, not deferred. The grammar this stage accepts is
+   > regular (tag lines, a flat token stream, fixed-shape SAN), and a
+   > state machine is the honest tool for a regular grammar. Even
+   > variations don't revive the IOU: they add exactly *one* recursive
+   > production (`variation = "(" sequence ")"`), which calls for one
+   > recursive function grafted onto this tokenizer — recursive descent,
+   > yes; the combinator idiom, no. Combinators earn their keep on
+   > grammatical mass (many productions, alternation, reuse), and a
+   > combinator library with a single call site is a framework for one
+   > function. Match the parsing technology to the grammar's mass —
+   > baker's grammar has it, PGN's doesn't. Extract, don't anticipate,
+   > applied to parsers.
 4. **`import`** — `pub fn import(pgn: &str) -> Result<Game, Rejected>`:
    the movetext folded over `Game::apply`. Victory-lap tests: the Opera
    Game (has O-O-O and mate) and the Immortal Game (wild captures and
