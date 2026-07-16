@@ -124,6 +124,24 @@ vs `children` vs `continuations` for a node's successors.
    line added stays the mainline.
 2. PGN variation **import**: turn today's "variations rejected loudly"
    into a recursive-descent parse of nested `(...)` into the tree.
+
+   Design (settled with Rob): this is the moment the anonymous lexer
+   gets its name. The pipeline inside `pgn::parse` (comment-stripping
+   state machine → whitespace split → move-number stripping) already
+   *is* a lexer — raw text to clean SAN tokens — but today it *rejects*
+   `(`, the one character that would make the language context-free.
+   Stage 2 flips that: the lexer emits parens as structural tokens, its
+   output growing from strings into a token enum —
+   `Token::{San(String), Open, Close, Result(String)}` — and the parser
+   side is the single recursive function already scoped (consume
+   `&[Token]`, recurse on `Open`, return on `Close`, graft via `with`).
+   The lexer/parser boundary is the regular/context-free boundary: a
+   finite state machine for the regular sublanguage, one recursion for
+   the one context-free production. No combinator library (see the
+   voided IOU in san-pgn-plan.md); the pipeline is
+   text → tokens (lex) → tree (parse) → `Study` (fold) — the same
+   interpreter shape as `Action → Edits → Position`, one altitude over
+   text.
 3. PGN variation **export**: a study writes `(...)` — the inverse, the
    mirror of stage 2.
 4. Tag `v0.8.0` (stages 2–3 may slip to `v0.9.0` if the parser wants
